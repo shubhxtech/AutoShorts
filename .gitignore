@@ -1,0 +1,31 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Node / dashboard build
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# App builds and local output
+dist/
+demo_output/
+
+# Local data, secrets and logs (the engine keeps these outside the repo by default)
+*.db
+*.db-shm
+*.db-wal
+.env
+.env.*
+secrets/
+client_secret*.json
+*.log
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
