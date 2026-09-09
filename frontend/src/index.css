@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens: the studio is dark by default; light mode is its own set of steps. */
+:root {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface-1: #1a1a19;
+  --surface-2: #222220;
+  --surface-3: #2c2c2a;
+  --line: rgba(255, 255, 255, 0.1);
+  --text-primary: #f0efec;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --series-1: #3987e5;
+  --brand: #ffd400;
+  --brand-ink: #141413;
+  --good: #0ca30c;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface-1: #fcfcfb;
+  --surface-2: #f3f2ee;
+  --surface-3: #e9e8e3;
+  --line: rgba(11, 11, 11, 0.1);
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --series-1: #2a78d6;
+  --brand: #f2c200;
+  --brand-ink: #141413;
+  --good: #006300;
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+
+.card { @apply rounded-2xl border border-line bg-surface; }
+.btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed; }
+.btn-primary { @apply btn bg-brand text-brand-ink hover:brightness-95; }
+.btn-ghost { @apply btn text-dim hover:bg-hover hover:text-ink; }
+.btn-outline { @apply btn border border-line text-ink hover:bg-hover; }
+.btn-danger { @apply btn border border-line text-bad hover:bg-hover; }
+.input { @apply w-full rounded-xl border border-line bg-raised px-3 py-2 text-sm text-ink placeholder:text-mute outline-none focus:border-accent; }
+.label { @apply mb-1 block text-xs font-medium uppercase tracking-wide text-mute; }
+.chip { @apply inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-xs text-dim; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+kbd { @apply rounded border border-line bg-raised px-1.5 py-0.5 text-[10px] font-semibold text-dim; }
