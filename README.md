@@ -4,7 +4,7 @@ An open-source studio that turns long videos into ready-to-post Shorts and Reels
 
 Paste a link. AutoShorts finds the moments worth clipping, edits them in a modern short-form style, checks them, and schedules them to your YouTube and Instagram accounts. Every model runs locally: no paid APIs, no cloud processing, no per-minute fees.
 
-> **Status:** early and actively developed. It currently runs on Apple Silicon (M1 or newer). Linux and Windows support is planned; see [Roadmap](#roadmap).
+> **Status:** early and actively developed. Runs on macOS (Apple Silicon), Windows and Linux. The macOS path is the most tested.
 
 ---
 
@@ -49,17 +49,22 @@ link or file
   -> collect metrics -> update the optimizer
 ```
 
-The engine is a Python service (FastAPI, SQLite, a local job queue) with a React dashboard. Heavy work runs in a background worker, one large model in memory at a time, so a 16 GB machine is enough.
+The engine is a Python service (FastAPI, SQLite, a local job queue) with a React dashboard. Heavy work runs in a background worker, one large model in memory at a time, so a 16 GB machine is enough. See [tech-stack/](tech-stack/README.md) for the full architecture.
 
 ---
 
 ## Requirements
 
-- macOS on Apple Silicon, 16 GB RAM recommended (8 GB works with the smaller LLM)
-- Python 3.11+, Node 18+, ffmpeg
-- About 20 GB of free disk space for models, downloaded on first use
+| | macOS | Windows / Linux |
+|---|---|---|
+| Hardware | Apple Silicon (M1 or newer) | Any 64-bit PC; an NVIDIA GPU (8 GB+) for fast faceless images |
+| RAM | 16 GB recommended (8 GB with the smaller LLM) | 16 GB recommended |
+| Software | Python 3.11+, Node 18+, ffmpeg | Python 3.11+, Node 18+, ffmpeg, [Ollama](https://ollama.com) for the LLM |
+| Disk | ~20 GB for models (downloaded on first use) | same |
 
 ## Quick start
+
+**macOS / Linux**
 
 ```bash
 git clone https://github.com/shubhxtech/AutoShorts.git
@@ -68,9 +73,18 @@ make setup      # Python environment and dashboard build
 make up         # starts the dashboard, worker and scheduler
 ```
 
-Open http://localhost:3000, paste a video link you have the rights to, and the first clips appear in **Review**.
+On Linux, also install [Ollama](https://ollama.com) and run `ollama pull qwen3:8b`.
 
-To try it without any footage, run `make demo`. To build the desktop app, run `make mac` (outputs to `dist/`).
+**Windows** (PowerShell, from the repository folder)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1
+scripts\start_windows.bat
+```
+
+The setup script installs anything missing (Python, Node, ffmpeg, Ollama) and uses your NVIDIA GPU if you have one.
+
+Open http://localhost:3000, paste a video link you have the rights to, and the first clips appear in **Review**. To try it without any footage, run `make demo`. To build the macOS app, run `make mac` (outputs to `dist/`).
 
 ## Connecting accounts
 
@@ -84,12 +98,12 @@ Tokens are stored locally in the data folder and never leave your machine except
 | Task | Default model |
 |---|---|
 | Transcription | `whisper-large-v3-turbo` (MLX) |
-| Language model | `Qwen3.5-9B` 4-bit (a 4B option for 8 GB machines) |
+| Language model | `Qwen3.5-9B` 4-bit on Apple Silicon; any local OpenAI-compatible server elsewhere (Ollama, LM Studio) |
 | Word alignment | `wav2vec2-base-960h` |
 | Voices | Qwen3-TTS (designed and cloned voices), Kokoro, Chatterbox |
 | Images | Z-Image-Turbo 4-bit |
 
-Models can be swapped in **Settings**. Check each model's license before commercial use.
+Models can be swapped in **Settings**, and the sidebar shows what's loaded with a button to free memory (models also unload on their own after a few idle minutes). Check each model's license before commercial use.
 
 ---
 
@@ -99,9 +113,11 @@ Models can be swapped in **Settings**. Check each model's license before commerc
 backend/clipforge/   engine: ingest, understand, mining, render, quality, publish, analytics, faceless, api
 frontend/            React + TypeScript dashboard
 macos/               desktop app shell, installer and build script
+scripts/             Windows setup and start scripts
+tech-stack/          architecture and design documentation
 ```
 
-The Python package is currently named `clipforge`. App data lives outside the repository (`~/Library/Application Support/ClipForge` by default; override with `CLIPFORGE_HOME`).
+The Python package is currently named `clipforge`. App data lives outside the repository (`~/Library/Application Support/ClipForge` on macOS, `%LOCALAPPDATA%\ClipForge` on Windows, `~/.local/share/clipforge` on Linux; override with `CLIPFORGE_HOME`).
 
 ## Development
 
@@ -112,8 +128,9 @@ make test       # backend tests
 
 ## Roadmap
 
-- Linux and Windows support (CUDA and CPU model backends, cross-platform face tracking and text rendering)
+- End-to-end testing on Windows and NVIDIA hardware
 - Docker image for one-command setup
+- A desktop shell for Windows
 - More faceless formats and caption styles
 - TikTok publishing
 
