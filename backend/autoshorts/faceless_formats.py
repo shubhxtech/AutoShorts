@@ -52,12 +52,12 @@ FORMATS: dict[str, Format] = {f.id: f for f in [
            "Top 5 most dangerous animals in India",
            "Scene 1 (kind='intro'): the hook that promises the list. Then one scene per item (kind='item') counting "
            "DOWN, with 'number' (5,4,3,2,1) and 'heading' = the item name in max 4 words; narration says why in 1-2 "
-           "punchy sentences. Save the most surprising item for #1. Last scene (kind='outro'): a one-line CTA.",
+           "punchy sentences. Save the most surprising item for #1. Each item's visual shows the item itself, large and clearly (an animal, place or object), never people looking at it. Last scene (kind='outro'): a one-line CTA.",
            style="cinematic", mood="hype"),
     Format("facts", "Rapid facts", "Quick-fire 'did you know' facts, one per scene, numbered.",
            "7 facts about the human brain that sound fake",
            "Scene 1 (kind='intro'): the hook. Then 5-8 facts (kind='item') with 'number' counting UP from 1 and "
-           "'heading' = the fact's key phrase (max 5 words). One sentence each, surprising and verifiable. "
+           "'heading' = the fact's key phrase (max 5 words). One sentence each, surprising and verifiable. Each visual shows the subject of the fact itself, not people. "
            "Last scene (kind='outro'): ask which fact surprised them most.",
            style="3d", mood="funny", seconds=40),
     Format("quiz", "Quiz", "Question, 3 options, a ticking timer, then the answer reveal.",
@@ -244,10 +244,10 @@ def draw_graphics(frame: np.ndarray, fmt: str, scenes: list, k: int, tm: SceneTi
     u = t - tm.start
     if kind == "item" and sc.number is not None:
         a = _back(u / 0.32)
-        _place(frame, _number_badge(int(sc.number)), W / 2, 330, 0.4 + 0.6 * a, min(1.0, u / 0.1))
+        _place(frame, _number_badge(int(sc.number)), W / 2, 470, 0.4 + 0.6 * a, min(1.0, u / 0.1))
         if sc.heading:
             b = _ease((u - 0.18) / 0.25)
-            _place(frame, _heading_chip(sc.heading, bg=ACCENT, fg=INK, size=68), W / 2, 560 + 40 * (1 - b), 1.0, b)
+            _place(frame, _heading_chip(sc.heading, bg=ACCENT, fg=INK, size=68), W / 2, 690 + 40 * (1 - b), 1.0, b)
     elif kind == "question" and sc.options:
         _draw_question(frame, sc, u, tm, reveal=None)
     elif kind == "answer":

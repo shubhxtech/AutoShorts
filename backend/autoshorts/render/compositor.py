@@ -377,7 +377,9 @@ def render(video: Video, src: Source, moment: Moment, spec: RenderSpec, out_path
         tl.loop = True
     faceless = bool((moment.meta or {}).get("faceless"))
     if faceless:
+        # Faceless formats draw their own graphics (badges, quiz cards); editor cards would collide with them.
         tl.framings, tl.punches, tl.push_in = [(0.0, 1.0)], [], 0.0
+        tl.cards = []
     broll_frames: list = []
     if tl.broll and int(settings.get("ai_broll") or 0) and not faceless:
         tl.broll = tl.broll[: int(settings.get("ai_broll"))]
