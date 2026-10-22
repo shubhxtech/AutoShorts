@@ -54,6 +54,9 @@ def tts(text: str, out_wav: Path, voice: str = "") -> float:
     return probe(out_wav).duration
 
 
+VOICE_CHAIN = "highpass=f=75,afftdn=nr=8:nf=-38,acompressor=threshold=0.08:ratio=3:attack=8:release=140:makeup=1.6"
+
+
 def master_voice(src: str, a: float, b: float, out_wav: Path, has_audio: bool = True) -> Path:
     """The cleaned voice for source seconds [a, b], computed once per master."""
     if has_audio:

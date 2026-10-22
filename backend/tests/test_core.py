@@ -315,3 +315,23 @@ def test_llm_server_backend(monkeypatch):
     assert llm.backend() == "server"
     assert llm.structured(TitleOptions, "s", "u").titles == ["One", "Two"] and seen["json"] is True
 
+
+def test_audio_master_and_mix_end_to_end(tmp_path):
+    """Runs the real ffmpeg audio path (master voice -> cut + crossfade -> loudnorm) on a synthetic file."""
+    import shutil
+
+    import pytest
+
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg not installed")
+    from autoshorts.media import ffmpeg, probe
+    from autoshorts.render import audio as A
+    from autoshorts.render import edl as E
+
+    src = tmp_path / "src.wav"
+    ffmpeg("-f", "lavfi", "-i", "sine=frequency=220:duration=12", "-ar", "48000", str(src))
+    words = [{"w": f"w{i}", "s": 1.0 + i * 0.5, "e": 1.0 + i * 0.5 + 0.4, "p": 1.0} for i in range(16)]
+    edl = E.build(words, 1.0, 9.0, jump_cuts=True, max_pause=0.45)
+    master = A.master_voice(str(src), 0.5, 10.0, tmp_path / "voice.wav")
+    out = A.build(str(master), edl, tmp_path / "mix.m4a", sfx_events=[], music=None, src_offset=0.5, voice_chain=False)
+    assert abs(probe(out).duration - edl.duration) < 0.15
