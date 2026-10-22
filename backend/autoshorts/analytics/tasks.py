@@ -53,7 +53,7 @@ def pull_metrics(ctx: JobContext, p: dict) -> None:
                                             "saves": int(ins.get("saved", 0)), "reach": int(ins.get("reach", 0)),
                                             "followers_gained": int(ins.get("follows", 0)),
                                             "avg_view_duration": float(ins.get("ig_reels_avg_watch_time", 0)) / 1000}
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("metrics for %s failed: %s", acc.name, exc)
             continue
         for x in posts:

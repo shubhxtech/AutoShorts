@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from sqlmodel import select
 
@@ -14,8 +14,22 @@ from ..db import session
 from ..models import Moment, Source, Video
 from ..understand.signals import episode_keywords, norm_word
 from . import candidates as cand
-from .prompts import (CREATIVE_SYSTEM, HOOK_STYLES, REFINE_SYSTEM, SCORE_SYSTEM, SCOUT_SYSTEM, Creative, Hook,
-                      MomentScore, Refined, ScoutResult, creative_prompt, refine_prompt, score_prompt, scout_prompt)
+from .prompts import (
+    CREATIVE_SYSTEM,
+    HOOK_STYLES,
+    REFINE_SYSTEM,
+    SCORE_SYSTEM,
+    SCOUT_SYSTEM,
+    Creative,
+    Hook,
+    MomentScore,
+    Refined,
+    ScoutResult,
+    creative_prompt,
+    refine_prompt,
+    score_prompt,
+    scout_prompt,
+)
 
 log = logs.get("miner")
 
@@ -64,7 +78,7 @@ def _llm_score(sents, w: cand.Window, title: str, niche: str) -> MomentScore | N
                              max_tokens=700, temperature=0.2, model=settings.get("llm_fast_model"))
     except llm.LLMUnavailable:
         return None
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log.warning("LLM scoring failed for window %s-%s: %s", w.s0, w.s1, exc)
         return None
     # Keep LLM-proposed bounds only if they're inside the window and still a valid length.
@@ -97,7 +111,7 @@ def _llm_scout(sents: list[dict], title: str, niche: str, min_s: float, max_s: f
         try:
             res = llm.structured(ScoutResult, SCOUT_SYSTEM, scout_prompt(lines, title, niche), max_tokens=900,
                                  temperature=0.3, model=settings.get("llm_fast_model"))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("scout pass failed on section %d: %s", k, exc)
             continue
         for p in res.picks:
@@ -151,7 +165,7 @@ def _refine(sents: list[dict], lo: int, hi: int, title: str, min_s: float, max_s
     try:
         r = llm.structured(Refined, REFINE_SYSTEM, refine_prompt(lines, lo, hi, title), max_tokens=700,
                            temperature=0.2)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log.warning("editor pass failed, keeping the scored bounds: %s", exc)
         return {"lo": lo, "hi": hi, "drop": [], "structure": "other", "note": "", "ok": True, "sense": True}
     nlo, nhi = sorted((r.start_line, r.end_line))
@@ -278,7 +292,7 @@ def mine(video: Video, src: Source, progress: Callable[[float, str], None]) -> l
                                           creative_prompt([(sents[i]["i"], sents[i]["s"] - sents[lo]["s"], sents[i]["text"]) for i in keep_lines], video.title,
                                                           src.niche, _creative_language(video, src)),
                                           max_tokens=1400, temperature=0.6)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log.warning("LLM packaging failed: %s", exc)
         if creative is None:
             creative = _template_creative(sents, cand.Window(lo, hi, sents[lo]["s"], sents[hi]["e"]), keywords)

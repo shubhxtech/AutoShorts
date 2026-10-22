@@ -12,7 +12,7 @@ from .. import logs, settings
 from ..config import paths
 from ..db import save, session
 from ..jobs.queue import JobContext, task
-from ..media import encoders, ffmpeg_bin
+from ..media import ffmpeg_bin
 from ..models import Account, Clip, Job, Post, Video, utcnow
 
 log = logs.get("ops")

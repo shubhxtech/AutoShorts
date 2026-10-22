@@ -8,8 +8,8 @@ text in the dashboard only changes the overlay spec, so the final video is made 
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import numpy as np
 
@@ -17,7 +17,7 @@ from .. import logs
 from ..media import ffmpeg_bin, video_encoder_args
 from .captions import CaptionTrack
 from .edl import OutWord
-from .overlays import H, W, Overlays
+from .overlays import H, Overlays, W
 from .plan import CardEvent, EmojiPop
 
 log = logs.get("burn")

@@ -41,7 +41,7 @@ def restore(words: list[dict], chunk: int = 160, progress=None) -> list[dict]:
         try:
             res = llm.structured(Ends, SYSTEM, f"Words (number:word):\n{listing}\n\nWhich word numbers end a sentence?",
                                  max_tokens=500, temperature=0.1)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("sentence restoration failed for words %d-%d: %s", i, i + chunk, exc)
             continue
         for e in res.ends:

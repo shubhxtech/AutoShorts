@@ -39,7 +39,7 @@ def run(queries: list[str], max_age_days: int = 14, per_query: int = 25) -> list
     for q in queries:
         try:
             cands = listing.youtube_search(q, per_query)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("search %r failed: %s", q, exc)
             continue
         for c in cands:

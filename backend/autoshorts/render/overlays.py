@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
-
 import cv2
 import numpy as np
 
@@ -41,6 +39,7 @@ class Overlays:
         self.layout_hint = layout_hint
         font = T.resolve_font("AvenirNext-Heavy", "Arial-Black")
         self.font = font
+        self._sprites: dict = {}
         self._hook_sprite = self._make_hook(hook) if hook else None
         self._head_sprite = self._make_headline(headline or hook) if (headline or hook) else None
         self._credit_sprite = self._make_small(f"🎙 {credit}") if credit else None
@@ -105,8 +104,13 @@ class Overlays:
             out.append(T.render(lines, st))
         return out
 
-    @lru_cache(maxsize=16)
     def _card_sprite(self, text: str, emoji: str) -> np.ndarray:
+        key = ("card", text, emoji)
+        if key not in self._sprites:
+            self._sprites[key] = self._make_card(text, emoji)
+        return self._sprites[key]
+
+    def _make_card(self, text: str, emoji: str) -> np.ndarray:
         style = T.TextStyle(font=T.resolve_font("Futura-CondensedExtraBold", self.font), size=150, stroke=0,
                             shadow=14, shadow_color=(0, 0, 0, 220), line_spacing=0.95)
         lines = self._wrap_lines(text.upper(), style, 900, 3)
@@ -115,9 +119,11 @@ class Overlays:
             spans.insert(0, [T.Span(emoji, (255, 255, 255, 255), 0.8)])
         return T.render(spans, style)
 
-    @lru_cache(maxsize=32)
     def _emoji_sprite(self, e: str) -> np.ndarray:
-        return T.render([[T.Span(e)]], T.TextStyle(font=self.font, size=150))
+        key = ("emoji", e)
+        if key not in self._sprites:
+            self._sprites[key] = T.render([[T.Span(e)]], T.TextStyle(font=self.font, size=150))
+        return self._sprites[key]
 
     # ------------------------------------------------------------ drawing
 

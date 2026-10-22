@@ -179,7 +179,7 @@ def _render_coretext(lines: list[list[Span]], style: TextStyle) -> np.ndarray:
     # Baselines from the top (CG origin is bottom-left).
     y_top = H - pad - bg_py
     baselines = []
-    for (w, asc, desc), lh in zip(metrics, line_h):
+    for (_w, asc, desc), lh in zip(metrics, line_h):
         extra = (lh - (asc + desc)) / 2
         baselines.append(y_top - extra - asc)
         y_top -= lh

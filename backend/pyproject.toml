@@ -73,4 +73,16 @@ autoshorts = ["assets/**/*"]
 testpaths = ["tests"]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "S110", "RUF100"]
+ignore = [
+  "B008",   # FastAPI's Depends()/Body() defaults are the intended pattern
+  "E501",   # long f-strings and prompts read better unwrapped
+  "SIM108", # ternaries aren't always clearer
+  "B905",   # zip() without strict= is intended where lengths may differ
+  "E741",   # short names like l are fine in tight loops
+  "SIM105", # try/except/pass is as clear as contextlib.suppress
+]

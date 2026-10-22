@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -23,11 +23,11 @@ def _ts(value) -> datetime | None:
         return None
     try:
         if isinstance(value, (int, float)):
-            return datetime.fromtimestamp(value, tz=timezone.utc)
+            return datetime.fromtimestamp(value, tz=UTC)
         if isinstance(value, str) and re.fullmatch(r"\d{8}", value):
-            return datetime.strptime(value, "%Y%m%d").replace(tzinfo=timezone.utc)
+            return datetime.strptime(value, "%Y%m%d").replace(tzinfo=UTC)
         dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        return (dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)).astimezone(timezone.utc)
+        return (dt if dt.tzinfo else dt.replace(tzinfo=UTC)).astimezone(UTC)
     except (ValueError, OSError):
         return None
 
@@ -154,7 +154,7 @@ def rss_list(url: str, limit: int = 20) -> list[Candidate]:
             pass
         published = None
         if e.get("published_parsed"):
-            published = datetime(*e.published_parsed[:6], tzinfo=timezone.utc)
+            published = datetime(*e.published_parsed[:6], tzinfo=UTC)
         image = (e.get("image") or {}).get("href") or (feed.feed.get("image") or {}).get("href", "")
         out.append(Candidate(external_id=e.get("id") or media, url=media, title=e.get("title", ""), views=0,
                              published_at=published, duration_s=secs, channel=feed.feed.get("title", ""),
@@ -171,7 +171,7 @@ def local_list(folder: str) -> list[Candidate]:
         if p.suffix.lower() in VIDEO_EXTS | AUDIO_EXTS and p.is_file():
             st = p.stat()
             out.append(Candidate(external_id=f"file:{p.resolve()}:{st.st_size}", url=str(p.resolve()), title=p.stem,
-                                 views=0, published_at=datetime.fromtimestamp(st.st_mtime, tz=timezone.utc), duration_s=0))
+                                 views=0, published_at=datetime.fromtimestamp(st.st_mtime, tz=UTC), duration_s=0))
     return out
 
 

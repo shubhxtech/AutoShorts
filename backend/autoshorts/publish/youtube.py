@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from .. import config, logs, settings
@@ -186,10 +186,10 @@ def analytics(acc: Account, ids: list[str], start: datetime) -> dict[str, dict]:
         try:
             resp = ya.reports().query(
                 ids="channel==MINE", startDate=start.strftime("%Y-%m-%d"),
-                endDate=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                endDate=datetime.now(UTC).strftime("%Y-%m-%d"),
                 metrics="views,averageViewDuration,averageViewPercentage,subscribersGained,shares",
                 dimensions="video", filters="video==" + ",".join(chunk)).execute()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.info("analytics not available yet: %s", exc)
             return out
         cols = [h["name"] for h in resp.get("columnHeaders", [])]
@@ -206,10 +206,10 @@ def retention(acc: Account, video_id: str, start: datetime) -> list[list[float]]
     ya = service(acc, "youtubeAnalytics", "v2")
     try:
         resp = ya.reports().query(ids="channel==MINE", startDate=start.strftime("%Y-%m-%d"),
-                                  endDate=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                                  endDate=datetime.now(UTC).strftime("%Y-%m-%d"),
                                   metrics="audienceWatchRatio", dimensions="elapsedVideoTimeRatio",
                                   filters=f"video=={video_id}").execute()
-    except Exception:  # noqa: BLE001
+    except Exception:
         return []
     return [[float(r[0]), float(r[1])] for r in resp.get("rows", []) or []]
 

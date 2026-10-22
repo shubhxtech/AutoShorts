@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import gc
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from . import logs, settings
 
@@ -77,7 +77,7 @@ def _mlx():
 
         # MLX keeps freed buffers around by default; on a 16 GB Mac that pushes the model into swap.
         mx.set_cache_limit(512 * 1024 * 1024)
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: S110 - best-effort cleanup, nothing to recover
         pass
     model = ZImage(quantize=4, model_path=snapshot_download(MLX_REPO))
 

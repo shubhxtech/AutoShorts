@@ -113,7 +113,7 @@ class Tunnel:
         self.proc: subprocess.Popen | None = None
         self.url: str | None = None
 
-    def __enter__(self) -> "Tunnel":
+    def __enter__(self) -> Tunnel:
         base = settings.get("public_base_url")
         if base:
             self.url = base.rstrip("/")

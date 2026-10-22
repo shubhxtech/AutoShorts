@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import httpx
 
@@ -25,7 +25,7 @@ def _dest_dir(video: Video) -> Path:
 
 
 def _is_ytdlp_url(url: str) -> bool:
-    return url.startswith("http") and not Path(url.split("?")[0]).suffix.lower() in VIDEO_EXTS | AUDIO_EXTS
+    return url.startswith("http") and Path(url.split("?")[0]).suffix.lower() not in VIDEO_EXTS | AUDIO_EXTS
 
 
 def download(video: Video, src: Source, progress: Progress) -> Path:
@@ -77,7 +77,7 @@ def _has_video(path: Path) -> bool:
     try:
         pr = probe(path)
         return pr.width > 0 and pr.vcodec not in ("mjpeg", "png", "")
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False
 
 

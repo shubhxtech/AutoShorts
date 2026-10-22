@@ -122,7 +122,7 @@ def align_words(audio: np.ndarray, sr: int, words: list[dict], language: str = "
         return words, stats
     try:
         _, _, _, vocab = _load()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log.info("aligner unavailable (%s); keeping Whisper timings", exc)
         return words, stats
     delim = vocab.get("|", 4)
@@ -152,7 +152,7 @@ def align_words(audio: np.ndarray, sr: int, words: list[dict], language: str = "
         try:
             em = _emissions(seg, sr) if len(seg) > sr * 0.2 else None
             path = _viterbi(em, tokens, blank=vocab.get("<pad>", 0)) if em is not None else None
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.debug("alignment failed for words %d-%d: %s", i, j, exc)
             path = None
         if path:

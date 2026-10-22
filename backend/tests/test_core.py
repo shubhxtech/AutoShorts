@@ -12,7 +12,6 @@ from autoshorts.render import plan as P
 from autoshorts.render.captions import STYLES, chunk_words
 from autoshorts.understand.transcribe import build_sentences
 
-
 TEXT = ("Nobody tells you this. um The first million is the hardest money you will ever make. "
         "I I was broke at twenty seven. And I made one decision that changed everything.")
 

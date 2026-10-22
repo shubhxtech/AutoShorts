@@ -6,9 +6,9 @@ import json
 import re
 import secrets
 import shutil
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import RedirectResponse
@@ -17,11 +17,25 @@ from sqlmodel import Session, col, select
 
 from .. import config, rights, settings
 from ..db import get_session, save
-from ..media import probe
 from ..jobs.queue import cancel as cancel_job
 from ..jobs.queue import enqueue
-from ..models import (RIGHTS_TYPES, SOURCE_KINDS, Account, Clip, Comment, Discovery, Event, Job, MetricSnapshot,
-                      Moment, Post, Source, Video, utcnow)
+from ..media import probe
+from ..models import (
+    RIGHTS_TYPES,
+    SOURCE_KINDS,
+    Account,
+    Clip,
+    Comment,
+    Discovery,
+    Event,
+    Job,
+    MetricSnapshot,
+    Moment,
+    Post,
+    Source,
+    Video,
+    utcnow,
+)
 from .summary import today_summary
 
 router = APIRouter(prefix="/api")
@@ -38,7 +52,7 @@ def media_url(path: str) -> str:
         return ""
 
 
-def _dt(v: Optional[datetime]) -> Optional[str]:
+def _dt(v: datetime | None) -> str | None:
     return v.isoformat() if v else None
 
 
@@ -158,8 +172,8 @@ class SourceIn(BaseModel):
     credit_text: str = ""
     credit_link: str = ""
     revenue_terms: str = ""
-    payout_per_1k: Optional[float] = None
-    expires_at: Optional[datetime] = None
+    payout_per_1k: float | None = None
+    expires_at: datetime | None = None
     active: bool = True
     niche: str = ""
     language: str = "auto"
@@ -209,7 +223,7 @@ def create_source(body: SourceIn, s: Session = Depends(get_session)):
 def _aware(d: dict) -> dict:
     v = d.get("expires_at")
     if isinstance(v, datetime) and v.tzinfo is None:
-        d["expires_at"] = v.replace(tzinfo=timezone.utc)
+        d["expires_at"] = v.replace(tzinfo=UTC)
     return d
 
 
@@ -286,7 +300,7 @@ def _quick_meta(url: str) -> dict:
         return {"title": info.get("title", ""), "channel": info.get("channel") or info.get("uploader", ""),
                 "channel_url": info.get("channel_url", ""), "thumbnail": info.get("thumbnail", ""),
                 "duration": info.get("duration") or 0, "views": info.get("view_count") or 0, "id": info.get("id", "")}
-    except Exception:  # noqa: BLE001
+    except Exception:
         return {}
 
 
@@ -384,13 +398,13 @@ def _local_thumb(v: Video) -> str:
             work.mkdir(parents=True, exist_ok=True)
             ffmpeg("-ss", f"{min(v.duration_s * 0.1, 60):.1f}", "-i", v.file_path, "-frames:v", "1", "-vf", "scale=320:-2",
                    str(thumb))
-        except Exception:  # noqa: BLE001
+        except Exception:
             return ""
     return f"/media/faceless/{v.id}/thumb.jpg" if thumb.exists() else ""
 
 
 @router.get("/videos")
-def list_videos(status: Optional[str] = None, source_id: Optional[int] = None, limit: int = 100,
+def list_videos(status: str | None = None, source_id: int | None = None, limit: int = 100,
                 s: Session = Depends(get_session)):
     q = select(Video).order_by(col(Video.id).desc()).limit(limit)
     if status:
@@ -481,8 +495,8 @@ def cancel_video(vid: int, s: Session = Depends(get_session)):
 
 class RemineIn(BaseModel):
     retranscribe: bool = False
-    language: Optional[str] = None          # auto | en | hi
-    caption_script: Optional[str] = None    # native (Devanagari) | latin (Hinglish)
+    language: str | None = None          # auto | en | hi
+    caption_script: str | None = None    # native (Devanagari) | latin (Hinglish)
 
 
 @router.post("/videos/{vid}/remine")
@@ -602,7 +616,7 @@ def _clip_out(c: Clip, s: Session) -> dict:
 
 
 @router.get("/clips")
-def list_clips(status: Optional[str] = "review", video_id: Optional[int] = None, limit: int = 200,
+def list_clips(status: str | None = "review", video_id: int | None = None, limit: int = 200,
                s: Session = Depends(get_session)):
     q = select(Clip)
     if status:
@@ -625,17 +639,17 @@ def get_clip(cid: int, s: Session = Depends(get_session)):
 
 
 class ClipEdit(BaseModel):
-    hook_text: Optional[str] = None
-    caption_style: Optional[str] = None
-    opening: Optional[str] = None
-    edit_preset: Optional[str] = None
-    layout: Optional[str] = None
-    caption_edits: Optional[dict[str, str]] = None
-    trim_start: Optional[float] = None    # seconds added to the start (negative extends)
-    trim_end: Optional[float] = None      # seconds added to the end (negative shortens)
-    youtube_title: Optional[str] = None
-    instagram_caption: Optional[str] = None
-    overlay: Optional[dict[str, Any]] = None   # live text edits: no re-render, burned on approval
+    hook_text: str | None = None
+    caption_style: str | None = None
+    opening: str | None = None
+    edit_preset: str | None = None
+    layout: str | None = None
+    caption_edits: dict[str, str] | None = None
+    trim_start: float | None = None    # seconds added to the start (negative extends)
+    trim_end: float | None = None      # seconds added to the end (negative shortens)
+    youtube_title: str | None = None
+    instagram_caption: str | None = None
+    overlay: dict[str, Any] | None = None   # live text edits: no re-render, burned on approval
     rerender: bool = True
 
 
@@ -698,7 +712,7 @@ def edit_clip(cid: int, body: ClipEdit, s: Session = Depends(get_session)):
 class Decision(BaseModel):
     ids: list[int]
     accounts: list[int] = []
-    at: Optional[datetime] = None
+    at: datetime | None = None
 
 
 @router.post("/clips/approve")
@@ -721,7 +735,7 @@ def approve(body: Decision, s: Session = Depends(get_session)):
         if needs_burn(c):
             enqueue("burn_clip", {"clip_id": c.id}, priority=9, dedupe_key=f"burn:{c.id}")
         targets = body.accounts or (auto_targets(c) if settings.get("auto_schedule_on_approve") else [])
-        at = body.at.replace(tzinfo=timezone.utc) if body.at and body.at.tzinfo is None else body.at
+        at = body.at.replace(tzinfo=UTC) if body.at and body.at.tzinfo is None else body.at
         posts = schedule_clip(c, targets, at) if targets else []
         out.append({"clip_id": cid, "posts": [dump(p) for p in posts]})
     return out
@@ -759,7 +773,7 @@ def system_memory():
 
         vm = psutil.virtual_memory()
         machine = {"total_gb": round(vm.total / 1e9, 1), "used_pct": vm.percent}
-    except Exception:  # noqa: BLE001
+    except Exception:
         machine = {}
     return {"worker": settings.get("worker_memory") or {}, "last_free": settings.get("last_free_memory") or {},
             "idle_minutes": settings.get("unload_idle_minutes"), "machine": machine}
@@ -830,22 +844,22 @@ def list_accounts(s: Session = Depends(get_session)):
 
 
 class AccountEdit(BaseModel):
-    name: Optional[str] = None
-    niche: Optional[str] = None
-    language: Optional[str] = None
-    voice: Optional[str] = None
-    cadence_per_day: Optional[int] = None
-    time_slots: Optional[list[str]] = None
-    timezone: Optional[str] = None
-    min_gap_minutes: Optional[int] = None
-    learn_slots: Optional[bool] = None
-    privacy_status: Optional[str] = None
-    default_hashtags: Optional[str] = None
-    google_project: Optional[str] = None
-    auto_reply_categories: Optional[list[str]] = None
-    auto_hide_spam: Optional[bool] = None
-    dm_funnels: Optional[list[dict]] = None
-    active: Optional[bool] = None
+    name: str | None = None
+    niche: str | None = None
+    language: str | None = None
+    voice: str | None = None
+    cadence_per_day: int | None = None
+    time_slots: list[str] | None = None
+    timezone: str | None = None
+    min_gap_minutes: int | None = None
+    learn_slots: bool | None = None
+    privacy_status: str | None = None
+    default_hashtags: str | None = None
+    google_project: str | None = None
+    auto_reply_categories: list[str] | None = None
+    auto_hide_spam: bool | None = None
+    dm_funnels: list[dict] | None = None
+    active: bool | None = None
 
 
 @router.patch("/accounts/{aid}")
@@ -889,7 +903,7 @@ def youtube_callback(state: str, code: str = "", error: str = ""):
         return RedirectResponse(f"/pages?error={error}")
     try:
         accs = youtube.finish_auth(state, code)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return RedirectResponse(f"/pages?error={str(exc)[:200]}")
     return RedirectResponse(f"/pages?connected={len(accs)}")
 
@@ -901,7 +915,7 @@ def instagram_token(access_token: str = Body(..., embed=True), ig_user_id: str =
 
     try:
         accs = instagram.connect_with_token(access_token.strip(), ig_user_id.strip())
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise HTTPException(400, str(exc)) from exc
     return [_account_out(a, s) for a in accs]
 
@@ -932,7 +946,7 @@ def instagram_callback(code: str = "", state: str = "", error: str = ""):
     redirect = f"{settings.get('public_base_url') or config.base_url()}/api/oauth/instagram/callback"
     try:
         accs = instagram.oauth_finish(code, redirect)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return RedirectResponse(f"/pages?error={str(exc)[:200]}")
     return RedirectResponse(f"/pages?connected={len(accs)}")
 
@@ -952,7 +966,7 @@ def _post_out(p: Post, s: Session) -> dict:
 
 
 @router.get("/posts")
-def list_posts(status: Optional[str] = None, account_id: Optional[int] = None, days: int = 30, limit: int = 300,
+def list_posts(status: str | None = None, account_id: int | None = None, days: int = 30, limit: int = 300,
                s: Session = Depends(get_session)):
     since = utcnow() - timedelta(days=days)
     q = select(Post).where((Post.scheduled_at >= since) | (Post.status == "scheduled"))
@@ -965,10 +979,10 @@ def list_posts(status: Optional[str] = None, account_id: Optional[int] = None, d
 
 
 class PostEdit(BaseModel):
-    scheduled_at: Optional[datetime] = None
-    title: Optional[str] = None
-    description: Optional[str] = None
-    caption: Optional[str] = None
+    scheduled_at: datetime | None = None
+    title: str | None = None
+    description: str | None = None
+    caption: str | None = None
 
 
 @router.patch("/posts/{pid}")
@@ -978,7 +992,7 @@ def edit_post(pid: int, body: PostEdit, s: Session = Depends(get_session)):
         raise HTTPException(400, "Only scheduled or failed posts can be edited")
     data = body.model_dump(exclude_none=True)
     if "scheduled_at" in data and data["scheduled_at"].tzinfo is None:
-        data["scheduled_at"] = data["scheduled_at"].replace(tzinfo=timezone.utc)
+        data["scheduled_at"] = data["scheduled_at"].replace(tzinfo=UTC)
     for k, v in data.items():
         setattr(p, k, v)
     return _post_out(save(p, s), s)
@@ -1122,8 +1136,8 @@ def list_comments(status: str = "drafted,new", limit: int = 200, s: Session = De
 
 
 class CommentEdit(BaseModel):
-    draft_reply: Optional[str] = None
-    reply_status: Optional[str] = None
+    draft_reply: str | None = None
+    reply_status: str | None = None
 
 
 @router.patch("/comments/{cid}")
@@ -1316,7 +1330,7 @@ def _storyboard(vid: int) -> dict:
         if wav.exists() and str(k) in vo:
             try:
                 d = round(probe(wav).duration, 1)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 d = None
         ver = int(a.stat().st_mtime) if a.exists() else 0
         scenes.append({**sc.model_dump(), "image": f"/media/faceless/{vid}/{a.name}?v={ver}" if a.exists() else "",
@@ -1346,7 +1360,7 @@ def storyboard_put(vid: int, body: StoryboardIn, s: Session = Depends(get_sessio
         try:
             script.scenes = [Scene.model_validate({k: v for k, v in sc.items() if k not in ("image", "image2", "seconds")})
                              for sc in body.scenes]
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise HTTPException(400, f"Bad scene: {exc}") from exc
         if not script.scenes:
             raise HTTPException(400, "A video needs at least one scene")
@@ -1386,7 +1400,7 @@ def faceless_parse(text: str = Body(..., embed=True)):
 
     try:
         return parse_script(text)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise HTTPException(400, f"Couldn't read the script: {exc}") from exc
 
 
@@ -1400,7 +1414,7 @@ def faceless_create(body: FacelessIn):
         try:
             if not faceless.parse_script(body.script_text)["scenes"]:
                 raise ValueError("no narration found")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise HTTPException(400, f"Couldn't read the script: {exc}") from exc
     vids = []
     for k in range(max(1, min(10, body.count))):
@@ -1488,7 +1502,7 @@ def voice_preview(voice: str = Body(...), text: str = Body("")):
 
     try:
         p = voices.preview(voice, text)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise HTTPException(400, f"Voice preview failed: {exc}") from exc
     finally:
         voices.unload()

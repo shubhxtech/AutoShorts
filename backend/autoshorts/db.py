@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import Iterator
 
 from sqlalchemy import event
 from sqlmodel import Session, SQLModel, create_engine

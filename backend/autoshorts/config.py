@@ -45,7 +45,7 @@ class Paths:
         self.logs = home / "logs"
         self.secrets = home / "secrets"          # OAuth client files and tokens
 
-    def ensure(self) -> "Paths":
+    def ensure(self) -> Paths:
         for p in (self.home, self.library, self.work, self.clips, self.proofs, self.music,
                   self.fonts, self.tmp, self.logs, self.secrets):
             p.mkdir(parents=True, exist_ok=True)

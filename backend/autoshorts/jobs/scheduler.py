@@ -47,7 +47,7 @@ class Scheduler:
         while not self.stop.is_set():
             try:
                 self.tick()
-            except Exception as exc:  # noqa: BLE001 - keep the loop alive
+            except Exception as exc:
                 log.exception("scheduler tick failed: %s", exc)
             self.stop.wait(20)
 

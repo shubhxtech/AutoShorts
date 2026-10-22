@@ -10,14 +10,10 @@ Unlike stock-footage generators, every visual is drawn for its exact line of the
 
 from __future__ import annotations
 
-import gc
 import json
 import re
-import subprocess
-import time
 from pathlib import Path
 
-import cv2
 import numpy as np
 from pydantic import BaseModel, Field, field_validator
 
@@ -25,7 +21,7 @@ from . import llm, logs, settings
 from .config import paths
 from .db import save, session
 from .jobs.queue import JobContext, enqueue, task
-from .media import ffmpeg, ffmpeg_bin, probe
+from .media import ffmpeg, probe
 from .models import Moment, Source, Video, utcnow
 
 log = logs.get("faceless")
@@ -121,8 +117,8 @@ def wikipedia_facts(topic: str, max_chars: int = 5000) -> tuple[str, str]:
         q = llm.structured(Queries, "You turn a video topic into Wikipedia search queries.", f"Topic: {topic}",
                            max_tokens=200, temperature=0.1)
         queries = [x for x in q.queries if x.strip()][:3] + [topic]
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception:
+        log.info("couldn't write Wikipedia queries; searching the topic as typed", exc_info=True)
     try:
         hits, seen = [], set()
         for query in queries:
@@ -153,7 +149,7 @@ def wikipedia_facts(topic: str, max_chars: int = 5000) -> tuple[str, str]:
                     scored.append((hit, title, para))
         scored.sort(key=lambda x: -x[0])
         out, used, n = [], [], 0
-        for hit, title, para in scored:
+        for _hit, title, para in scored:
             if n + len(para) > max_chars:
                 break
             out.append(para)
@@ -161,7 +157,7 @@ def wikipedia_facts(topic: str, max_chars: int = 5000) -> tuple[str, str]:
             if title not in used:
                 used.append(title)
         return "\n\n".join(out), ", ".join(used)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log.info("wikipedia lookup failed: %s", exc)
         return "", ""
 
@@ -180,7 +176,7 @@ def fact_check(script: Script, source: str) -> Script:
                              "source text. Rewrite only lines that need it; return all lines.",
                              f"Source text:\n{source[:6000]}\n\nScript lines:\n{listing}\n\nCheck and fix.",
                              max_tokens=2500, temperature=0.2)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log.warning("fact check failed: %s", exc)
         return script
     if len(res.narrations) == len(script.scenes):
@@ -547,7 +543,7 @@ def voiceover(script: Script, voice: str, work: Path, ctx: JobContext, lo: float
             used = True
             try:
                 tts(text, wav, voice)
-            except Exception as exc:  # noqa: BLE001 - one odd token shouldn't kill the video
+            except Exception as exc:
                 log.warning("voice failed on scene %d (%s); retrying with plain text", k, exc)
                 tts(re.sub(r"[^\w .,!?']", " ", text), wav, voice)
             cache[str(k)] = key

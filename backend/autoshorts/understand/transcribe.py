@@ -11,8 +11,8 @@ import gc
 import inspect
 import json
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import numpy as np
 
@@ -71,7 +71,7 @@ def _fw_model(name: str):
             import ctranslate2
 
             cuda = ctranslate2.get_cuda_device_count() > 0
-        except Exception:  # noqa: BLE001
+        except Exception:
             cuda = False
         _fw_cache.clear()
         _fw_cache[name] = WhisperModel(name, device="cuda" if cuda else "cpu",
@@ -80,7 +80,6 @@ def _fw_model(name: str):
 
 
 def _faster_transcribe(chunk: np.ndarray, model: str, language: str | None) -> dict:
-    from faster_whisper import WhisperModel
 
     name = "large-v3-turbo" if "turbo" in model else "small"
     wm = _fw_model(name)
@@ -208,7 +207,7 @@ def _release() -> None:
         import mlx.core as mx
 
         mx.clear_cache()
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: S110 - best-effort cleanup, nothing to recover
         pass
 
 
@@ -228,7 +227,7 @@ def diarize(wav_path: str | Path, data: dict) -> dict:
 
         if torch.backends.mps.is_available():
             pipe.to(torch.device("mps"))
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: S110 - MPS is optional; CPU works
         pass
     diar = pipe(str(wav_path))
     turns = [(t.start, t.end, spk) for t, _, spk in diar.itertracks(yield_label=True)]

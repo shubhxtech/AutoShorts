@@ -118,7 +118,7 @@ def get(key: str, default: Any = None) -> Any:
     return DEFAULTS.get(key, default) if default is None else default
 
 
-def set(key: str, value: Any) -> None:  # noqa: A001 - mirrors get()
+def set(key: str, value: Any) -> None:
     with session() as s:
         row = s.get(Setting, key)
         if row is None:

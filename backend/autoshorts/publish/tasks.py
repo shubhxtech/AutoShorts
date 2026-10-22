@@ -82,7 +82,7 @@ def publish_post(ctx: JobContext, p: dict) -> None:
                         level="error", account_id=acc.id)
         fail(f"Instagram: {exc}", retry_in=600 if exc.retriable else None)
         return
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         msg = f"{type(exc).__name__}: {exc}"
         if "invalid_grant" in msg or "Token has been expired" in msg:
             youtube.mark_expired(acc, msg)
@@ -116,14 +116,14 @@ def refresh_tokens(ctx: JobContext, p: dict) -> None:
         accounts = s.exec(select(Account).where(Account.active == True)).all()  # noqa: E712
     for acc in accounts:
         if acc.platform == "instagram":
-            if acc.token_expires_at and acc.token_expires_at - utcnow() < timedelta(days=20):
-                if not instagram.refresh_token(acc):
+            if acc.token_expires_at and acc.token_expires_at - utcnow() < timedelta(days=20) \
+                    and not instagram.refresh_token(acc):
                     events.emit("token_expiring", f"{acc.name}: Instagram token couldn't be refreshed",
                                 "Reconnect the page before it expires.", level="warning", account_id=acc.id)
         elif acc.platform == "youtube":
             try:
                 youtube._creds(acc)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 youtube.mark_expired(acc, str(exc))
                 events.emit("token_expiring", f"{acc.name}: YouTube needs reconnecting", str(exc)[:200],
                             level="warning", account_id=acc.id)

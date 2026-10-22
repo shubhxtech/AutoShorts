@@ -3,7 +3,7 @@ import tempfile
 
 os.environ["AUTOSHORTS_HOME"] = tempfile.mkdtemp(prefix="cf_test_")
 
-from autoshorts.db import init_db  # noqa: E402
+from autoshorts.db import init_db
 
 init_db()
 

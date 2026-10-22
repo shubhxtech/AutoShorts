@@ -5,7 +5,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from . import llm, logs
-from .db import save, session
+from .db import session
 from .jobs.queue import JobContext, task
 from .models import Clip, Moment, Video
 

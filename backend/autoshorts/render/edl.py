@@ -54,7 +54,7 @@ class EDL:
     def duration(self) -> float:
         return sum(s.duration for s in self.segments)
 
-    def finalize(self, all_words: list[dict]) -> "EDL":
+    def finalize(self, all_words: list[dict]) -> EDL:
         t = 0.0
         self.words = []
         for seg in self.segments:

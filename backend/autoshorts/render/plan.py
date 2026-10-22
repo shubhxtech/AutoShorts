@@ -205,7 +205,7 @@ def ask_llm(words: list[OutWord], hook: str, niche: str, language: str) -> EditP
     try:
         return llm.structured(EditPlanModel, PLAN_SYSTEM, plan_prompt(words, hook, niche, language),
                               max_tokens=900, temperature=0.3)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log.warning("edit plan from LLM failed, using rules only: %s", exc)
         return None
 

@@ -65,7 +65,7 @@ class Worker:
                 settings.set("worker_memory", {"rss_mb": round(memory.rss_mb()), "models": memory.loaded(),
                                                "busy": self.active > 0, "pending_free": bool(req) and self.active > 0,
                                                "at": utcnow().isoformat()})
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log.warning("memory monitor: %s", exc)
             self.stop.wait(3)
 
@@ -73,7 +73,7 @@ class Worker:
         while not self.stop.is_set():
             try:
                 settings.set("worker_heartbeat", utcnow().isoformat())
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log.warning("heartbeat failed: %s", exc)
             self.stop.wait(10)
 

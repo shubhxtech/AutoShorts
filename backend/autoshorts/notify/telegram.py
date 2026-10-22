@@ -39,7 +39,7 @@ def send(text: str, chat_id: str | None = None) -> bool:
     try:
         _call("sendMessage", chat_id=chat, text=text[:4000], parse_mode="HTML", disable_web_page_preview=True)
         return True
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log.warning("telegram send failed: %s", exc)
         return False
 
@@ -88,7 +88,7 @@ def _poll(stop: threading.Event) -> None:
             continue
         try:
             updates = _call("getUpdates", http_timeout=40, offset=offset, timeout=30)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.debug("telegram poll: %s", exc)
             stop.wait(15)
             continue
@@ -97,7 +97,7 @@ def _poll(stop: threading.Event) -> None:
             if "message" in upd:
                 try:
                     _handle(upd["message"])
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     log.warning("telegram command failed: %s", exc)
 
 

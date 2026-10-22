@@ -41,7 +41,7 @@ def rss_mb() -> float:
         import psutil
 
         return psutil.Process(os.getpid()).memory_info().rss / 1e6
-    except Exception:  # noqa: BLE001
+    except Exception:
         return 0.0
 
 
@@ -67,7 +67,7 @@ def free_all() -> dict:
     if "mlx.core" in m:
         try:
             m["mlx.core"].clear_cache()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: S110 - best-effort cleanup, nothing to recover
             pass
     if "torch" in m:
         torch = m["torch"]
@@ -76,7 +76,7 @@ def free_all() -> dict:
                 torch.cuda.empty_cache()
             if torch.backends.mps.is_available():
                 torch.mps.empty_cache()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: S110 - best-effort cleanup, nothing to recover
             pass
     after = rss_mb()
     log.info("freed models %s: %.0f MB -> %.0f MB", names or "(none)", before, after)

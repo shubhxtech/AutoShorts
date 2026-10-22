@@ -11,7 +11,7 @@ Rules:
 from __future__ import annotations
 
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlmodel import select
@@ -56,7 +56,7 @@ def _local_slots(acc: Account, day: datetime) -> list[datetime]:
         except ValueError:
             continue
         local = datetime(day.year, day.month, day.day, hh, mm, tzinfo=tz)
-        out.append(local.astimezone(timezone.utc))
+        out.append(local.astimezone(UTC))
     return out
 
 

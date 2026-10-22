@@ -51,7 +51,7 @@ def unload() -> None:
 
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: S110 - best-effort cleanup, nothing to recover
             pass
 
 
@@ -62,7 +62,6 @@ def _model(engine: str):
     device, dtype = _device()
     log.info("loading voice model %s on %s", engine, device)
     if engine == "kokoro":
-        from kokoro import KPipeline
 
         model = {}                                    # one pipeline per language code, made on demand
     elif engine in REPOS:

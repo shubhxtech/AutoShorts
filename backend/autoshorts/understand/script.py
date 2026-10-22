@@ -32,7 +32,7 @@ def romanise_words(words: list[dict], batch: int = 60) -> list[dict]:
                   + "\n".join(f"{k + 1}. {x}" for k, x in enumerate(chunk)))
         try:
             res = llm.structured(Romanised, SYSTEM, prompt, max_tokens=1200, temperature=0.1)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("romanisation failed for a batch: %s", exc)
             continue
         if len(res.words) != len(chunk):

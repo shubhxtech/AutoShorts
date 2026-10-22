@@ -56,10 +56,7 @@ class Camera:
     # ------------------------------------------------------------ planning
 
     def _speaking(self, t: float) -> bool:
-        for s, e in self.speech:
-            if s - 0.15 <= t <= e + 0.15:
-                return True
-        return False
+        return any(s - 0.15 <= t <= e + 0.15 for s, e in self.speech)
 
     def _visible(self, s: float, e: float) -> list[Track]:
         out = []

@@ -68,9 +68,7 @@ def watch_source(ctx: JobContext, p: dict) -> None:
             return False
         if v.published_at and src.max_video_age_days and now - v.published_at > timedelta(days=src.max_video_age_days):
             return False
-        if has_views and v.viral_score < src.min_viral_score:
-            return False
-        return True
+        return not (has_views and v.viral_score < src.min_viral_score)
 
     picks = sorted((v for v in pool if eligible(v)),
                    key=lambda v: (v.viral_score if has_views else 0, v.published_at or now), reverse=True)
@@ -178,9 +176,8 @@ def _process_video(ctx: JobContext, p: dict) -> None:
         video = _set(vid, transcript_path=str(transcript_path), language=data.get("language", ""))
     else:
         data = json.loads(transcript_path.read_text())
-        from .understand.transcribe import build_sentences
-
         from .understand import punctuate
+        from .understand.transcribe import build_sentences
 
         if punctuate.needs_restoring(data["words"]) and not any(w.get("eos") for w in data["words"]):
             _set(vid, status="analyzing", stage_message="restoring sentences")
@@ -218,7 +215,7 @@ def _process_video(ctx: JobContext, p: dict) -> None:
 
             st = align_ranges(wav, transcript_path, [(m.start_s - 3.5, m.end_s) for m in moments], video.language)
             log.info("forced alignment: %s", st)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("forced alignment skipped: %s", exc)
 
     # 6. Render variants (one heavy job per moment, best first)
@@ -237,8 +234,8 @@ def _maybe_progress(video_id: int, frac: float, msg: str) -> None:
                 v.progress, v.stage_message = round(frac, 3), msg[:200]
                 s.add(v)
                 s.commit()
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception:
+        log.debug("progress update for video %s skipped", video_id, exc_info=True)
 
 
 # ---------------------------------------------------------------- rendering

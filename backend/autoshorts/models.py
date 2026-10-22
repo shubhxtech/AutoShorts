@@ -7,8 +7,8 @@ which is the rights record. A `Video` cannot exist without one.
 from __future__ import annotations
 
 import copy
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
@@ -16,10 +16,10 @@ from sqlmodel import Field, SQLModel
 
 def utcnow() -> datetime:
     """All timestamps are timezone-aware UTC."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
-def JSONField(default: Any = None, **kw):  # noqa: N802 - reads like a type
+def JSONField(default: Any = None, **kw):
     factory = lambda: copy.deepcopy(default)  # noqa: E731
     return Field(default_factory=factory, sa_column=Column(JSON), **kw)
 
@@ -32,7 +32,7 @@ SOURCE_KINDS = ("youtube_channel", "youtube_playlist", "youtube_video", "rss", "
 
 
 class Source(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     name: str
     kind: str = "youtube_channel"
     url: str = ""
@@ -48,8 +48,8 @@ class Source(SQLModel, table=True):
     credit_text: str = ""                # e.g. "Full episode: The Example Podcast"
     credit_link: str = ""
     revenue_terms: str = ""
-    payout_per_1k: Optional[float] = None    # clipping campaigns: USD per 1,000 views
-    expires_at: Optional[datetime] = None
+    payout_per_1k: float | None = None    # clipping campaigns: USD per 1,000 views
+    expires_at: datetime | None = None
     active: bool = True
 
     # Discovery and ingest behaviour.
@@ -69,7 +69,7 @@ class Source(SQLModel, table=True):
     auto_publish_top: int = 3
     target_accounts: list = JSONField([])
 
-    last_checked_at: Optional[datetime] = None
+    last_checked_at: datetime | None = None
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
@@ -81,7 +81,7 @@ VIDEO_STAGES = ("discovered", "queued", "downloading", "transcribing", "analyzin
 
 
 class Video(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     source_id: int = Field(foreign_key="source.id", index=True)
     external_id: str = Field(index=True)
     url: str = ""
@@ -90,7 +90,7 @@ class Video(SQLModel, table=True):
     channel_id: str = ""
     description: str = ""
     thumbnail: str = ""
-    published_at: Optional[datetime] = None
+    published_at: datetime | None = None
     duration_s: float = 0
     view_count: int = 0
     like_count: int = 0
@@ -118,12 +118,12 @@ class Video(SQLModel, table=True):
 
 
 class Moment(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     video_id: int = Field(foreign_key="video.id", index=True)
     start_s: float
     end_s: float
-    tight_start_s: Optional[float] = None
-    tight_end_s: Optional[float] = None
+    tight_start_s: float | None = None
+    tight_end_s: float | None = None
     text: str = ""
     title: str = ""
     hooks: list = JSONField([])          # [{"text": ..., "style": ...}]
@@ -134,7 +134,7 @@ class Moment(SQLModel, table=True):
     final_score: float = 0
     hook_style: str = ""
     reason: str = ""
-    punchline_s: Optional[list] = JSONField(None)   # [start, end] of the strongest line, for cold opens
+    punchline_s: list | None = JSONField(None)   # [start, end] of the strongest line, for cold opens
     emphasis: list = JSONField([])       # words to highlight
     emoji: dict = JSONField({})          # word -> emoji
     meta: dict = JSONField({})           # titles, descriptions, captions, tags
@@ -147,7 +147,7 @@ CLIP_STATUSES = ("rendering", "qc_failed", "review", "approved", "rejected", "sc
 
 
 class Clip(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     moment_id: int = Field(foreign_key="moment.id", index=True)
     video_id: int = Field(foreign_key="video.id", index=True)
     source_id: int = Field(foreign_key="source.id", index=True)
@@ -176,7 +176,7 @@ class Clip(SQLModel, table=True):
     predicted_views: float = 0
     meta: dict = JSONField({})
     target_accounts: list = JSONField([])
-    reviewed_at: Optional[datetime] = None
+    reviewed_at: datetime | None = None
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
@@ -184,7 +184,7 @@ class Clip(SQLModel, table=True):
 # ---------------------------------------------------------------- pages and publishing
 
 class Account(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     platform: str                        # youtube | instagram
     name: str = ""
     handle: str = ""
@@ -201,7 +201,7 @@ class Account(SQLModel, table=True):
     privacy_status: str = "public"       # youtube only: public | unlisted | private
     default_hashtags: str = ""
     credentials: dict = JSONField({})    # tokens; never sent to the browser
-    token_expires_at: Optional[datetime] = None
+    token_expires_at: datetime | None = None
     google_project: str = "default"      # which OAuth client (quota bucket) this channel uses
     auto_reply_categories: list = JSONField([])
     auto_hide_spam: bool = True
@@ -214,7 +214,7 @@ class Account(SQLModel, table=True):
 
 
 class Post(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     clip_id: int = Field(foreign_key="clip.id", index=True)
     account_id: int = Field(foreign_key="account.id", index=True)
     platform: str = ""
@@ -229,7 +229,7 @@ class Post(SQLModel, table=True):
     external_id: str = ""
     container_id: str = ""
     url: str = ""
-    published_at: Optional[datetime] = None
+    published_at: datetime | None = None
     slot_hour: int = -1
 
     views: int = 0
@@ -243,17 +243,17 @@ class Post(SQLModel, table=True):
     followers_gained: int = 0
     earnings: float = 0
     earnings_manual: bool = False
-    views_24h: Optional[int] = None
-    views_72h: Optional[int] = None
+    views_24h: int | None = None
+    views_72h: int | None = None
     retention: list = JSONField([])
-    last_metrics_at: Optional[datetime] = None
+    last_metrics_at: datetime | None = None
     alerted_views: int = 0
     learned: bool = False
     created_at: datetime = Field(default_factory=utcnow)
 
 
 class MetricSnapshot(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     post_id: int = Field(foreign_key="post.id", index=True)
     taken_at: datetime = Field(default_factory=utcnow)
     hours: float = 0
@@ -274,14 +274,14 @@ COMMENT_CATEGORIES = ("question", "praise", "criticism", "spam", "hate", "wants_
 
 
 class Comment(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     post_id: int = Field(foreign_key="post.id", index=True)
     account_id: int = Field(foreign_key="account.id", index=True)
     platform: str = ""
     external_id: str = Field(index=True)
     author: str = ""
     text: str = ""
-    published_at: Optional[datetime] = None
+    published_at: datetime | None = None
     like_count: int = 0
     category: str = ""
     confidence: float = 0
@@ -297,7 +297,7 @@ class Comment(SQLModel, table=True):
 
 class Discovery(SQLModel, table=True):
     """A viral video found by the trend scout. It can't be clipped until a rights record covers it."""
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     external_id: str = Field(index=True)
     url: str = ""
     title: str = ""
@@ -306,20 +306,20 @@ class Discovery(SQLModel, table=True):
     channel_url: str = ""
     thumbnail: str = ""
     query: str = ""
-    published_at: Optional[datetime] = None
+    published_at: datetime | None = None
     duration_s: float = 0
     view_count: int = 0
     viral_score: float = 0
     velocity: float = 0
     status: str = "new"                  # new | dismissed | claimed
-    source_id: Optional[int] = None
+    source_id: int | None = None
     created_at: datetime = Field(default_factory=utcnow)
 
 
 # ---------------------------------------------------------------- ops
 
 class Job(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     kind: str = Field(index=True)
     lane: str = "light"                  # heavy (one at a time) | light
     payload: dict = JSONField({})
@@ -333,13 +333,13 @@ class Job(SQLModel, table=True):
     dedupe_key: str = Field(default="", index=True)
     run_after: datetime = Field(default_factory=utcnow)
     created_at: datetime = Field(default_factory=utcnow)
-    started_at: Optional[datetime] = None
-    finished_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
 
 
 class Event(SQLModel, table=True):
     """Activity feed and notifications (also mirrored to Telegram and the Mac app)."""
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     kind: str = Field(index=True)        # clips_ready | viral | post_failed | token_expiring | replies_waiting | ...
     level: str = "info"                  # info | success | warning | error
     title: str = ""
@@ -357,7 +357,7 @@ class Setting(SQLModel, table=True):
 
 
 class BanditArm(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     scope: str = Field(index=True)       # "global" or "account:<id>"
     dimension: str = Field(index=True)   # hook_style | caption_style | length_bucket | opening | slot_hour
     arm: str = ""

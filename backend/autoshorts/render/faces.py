@@ -185,13 +185,13 @@ def detector():
             try:
                 _detector = VisionDetector()
                 return _detector
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log.info("Apple Vision unavailable (%s); using OpenCV", exc)
         if hasattr(__import__("cv2"), "FaceDetectorYN"):
             try:
                 _detector = YuNetDetector()
                 return _detector
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log.warning("YuNet face detector unavailable (%s); using Haar cascades", exc)
         _detector = HaarDetector()
     return _detector
@@ -278,7 +278,7 @@ def analyze(path: str, start: float, duration: float, cuts: list[float], fps: fl
     for t, frame in sample_frames(path, start, duration, fps):
         try:
             samples.append((t, det(frame)))
-        except Exception as exc:  # noqa: BLE001 - one bad frame shouldn't kill the render
+        except Exception as exc:
             log.debug("face detection failed at %.2f: %s", t, exc)
             samples.append((t, []))
     tracks = build_tracks(samples, [start + c for c in cuts])

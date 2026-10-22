@@ -70,7 +70,7 @@ def _server_up() -> bool:
     try:
         r = httpx.get(settings.get("llm_server_url").rstrip("/") + "/models", timeout=3)
         ok = r.status_code == 200
-    except Exception:  # noqa: BLE001
+    except Exception:
         ok = False
     _server_check.update(at=time.time(), ok=ok)
     return ok
@@ -120,7 +120,7 @@ def unload() -> None:
             import mlx.core as mx
 
             mx.clear_cache()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: S110 - best-effort cleanup, nothing to recover
             pass
 
 
@@ -134,8 +134,8 @@ def _server_unload() -> None:
     try:
         httpx.post(url.rsplit("/v1", 1)[0] + "/api/generate",
                    json={"model": settings.get("llm_server_model"), "keep_alive": 0}, timeout=10)
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception:
+        log.debug("Ollama did not accept the unload request", exc_info=True)
 
 
 _reaper_started = False

@@ -111,7 +111,7 @@ def qwen_speakers() -> list[str]:
         spk = cfg.get("talker_config", {}).get("spk_id") or cfg.get("spk_id") or {}
         names = [n for n in spk] if isinstance(spk, dict) else []
         return [n for n in names if n] or DEFAULT_QWEN_SPEAKERS
-    except Exception:  # noqa: BLE001
+    except Exception:
         return DEFAULT_QWEN_SPEAKERS
 
 
@@ -139,7 +139,7 @@ def unload() -> None:
             import mlx.core as mx
 
             mx.clear_cache()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: S110 - best-effort cleanup, nothing to recover
             pass
 
 
@@ -202,7 +202,7 @@ def synth(text: str, voice: str, speed: float = 1.0) -> tuple[np.ndarray, int]:
             model = _model("clone")
             sr = int(getattr(model, "sample_rate", 24000) or 24000)
             kw = dict(ref_audio=str(ref), ref_text=ref_text, lang_code="auto")
-        except Exception as exc:  # noqa: BLE001 - no clone model (offline): fall back to designing per line
+        except Exception as exc:
             log.warning("voice lock unavailable (%s); designed voice may vary between lines", exc)
             model = _model("design")
             kw = dict(instruct=DESIGNS.get(parts[1], parts[1]), lang_code="auto")

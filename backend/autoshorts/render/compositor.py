@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import subprocess
 import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Callable
 
 import cv2
 import numpy as np
@@ -21,7 +21,7 @@ from . import edl as E
 from . import faces as F
 from . import plan as P
 from .captions import CaptionTrack
-from .overlays import H, W, Overlays, audiogram_frame, fit_frame
+from .overlays import H, Overlays, W, audiogram_frame, fit_frame
 from .reframe import Camera, Rect
 
 log = logs.get("render")
@@ -83,7 +83,7 @@ class FrameReader:
             self.proc.stdout.close()
             self.proc.kill()
             self.proc.wait(timeout=5)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: S110 - best-effort cleanup, nothing to recover
             pass
 
 
@@ -139,8 +139,8 @@ def _cached_plan(moment: Moment, edl: E.EDL, spec: RenderSpec, src: Source, lang
     if key in meta:
         try:
             return P.EditPlanModel.model_validate(meta[key])
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception:
+            log.debug("cached edit plan is out of date; asking again", exc_info=True)
     model = P.ask_llm(edl.words, spec.hook_text, src.niche, language)
     if model is not None:
         from ..db import session
@@ -354,7 +354,7 @@ def render(video: Video, src: Source, moment: Moment, spec: RenderSpec, out_path
             narration = tmp / "narration.wav"
             nd = A.tts(spec.hook_text, narration, settings.get("tts_voice") or "")
             edl = E.prepend_still(edl, nd + 0.25, edl.segments[0].src_start, words)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("narration failed, rendering without it: %s", exc)
             narration = None
     duration = edl.duration
@@ -417,7 +417,6 @@ def render(video: Video, src: Source, moment: Moment, spec: RenderSpec, out_path
                     key_words=set(moment.emphasis or []) | {"quit", "stop", "never", "secret", "truth", "mistake"})
 
     fps = master.fps
-    final = quality == "final"
     dec_size = (MW, MH)                               # full master res so zooms stay sharp
     enc = subprocess.Popen([ffmpeg_bin(), "-hide_banner", "-loglevel", "error", "-y", "-f", "rawvideo", "-pix_fmt", "bgr24",
                             "-s", f"{W}x{H}", "-r", f"{fps}", "-i", "-", "-i", str(audio_path), "-map", "0:v", "-map", "1:a",
@@ -588,7 +587,7 @@ def _broll_images(video: Video, moment: Moment, events: list, progress) -> list:
             images.generate([(f"{ev.visual}. {style}. vertical composition, no people, no faces, no hands, no text, "
                               f"no watermark, no logos", path, (moment.id or 7) + k)
                              for k, (ev, path) in enumerate(todo)], label="b-roll shot")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("b-roll generation failed: %s", exc)
     for ev in events:
         if ev.image and Path(ev.image).exists():
@@ -642,7 +641,7 @@ def _load_art(video: Video) -> np.ndarray | None:
         else:
             arr = cv2.imread(video.thumbnail)
         return arr
-    except Exception:  # noqa: BLE001
+    except Exception:
         return None
 
 
@@ -652,7 +651,7 @@ def _energy_lookup(video: Video):
         e = np.array(tl["energy"], dtype=np.float32)
         lo, hi = np.percentile(e, 20), np.percentile(e, 99)
         return (np.clip((e - lo) / max(1e-3, hi - lo), 0, 1), tl.get("hop", 0.1))
-    except Exception:  # noqa: BLE001
+    except Exception:
         return None
 
 

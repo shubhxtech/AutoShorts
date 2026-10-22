@@ -80,7 +80,7 @@ def triage(comments: list[Comment], acc: Account, src: Source | None, context: s
             out = llm.structured(TriageBatch, system, f"Clip: {context}\n\nComments:\n{listing}",
                                  max_tokens=2200, temperature=0.4)
             results = {t.n - 1: t for t in out.items if 1 <= t.n <= len(comments)}
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("comment triage via LLM failed: %s", exc)
     for i, c in enumerate(comments):
         t = results.get(i)
@@ -111,7 +111,7 @@ def fetch_comments(ctx: JobContext, p: dict) -> None:
             try:
                 raw = youtube.comments(acc, post.external_id) if acc.platform == "youtube" \
                     else instagram.comments(acc, post.external_id)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log.info("comments for post %s: %s", post.id, exc)
                 continue
             new: list[Comment] = []
@@ -151,7 +151,7 @@ def fetch_comments(ctx: JobContext, p: dict) -> None:
                         (youtube.hide if acc.platform == "youtube" else instagram.hide)(acc, c.external_id)
                         c.reply_status = "hidden"
                         save(c)
-                    except Exception as exc:  # noqa: BLE001
+                    except Exception as exc:
                         log.info("couldn't hide comment %s: %s", c.id, exc)
                 elif c.draft_reply and c.category in (acc.auto_reply_categories or []) and c.category in SAFE_AUTO \
                         and not c.needs_attention:
@@ -181,9 +181,9 @@ def _run_funnel(acc: Account, c: Comment, f: dict) -> None:
         public = f.get("public_reply") or "Sent you a DM 📩"
         try:
             c.reply_external_id = instagram.reply(acc, c.external_id, public)
-        except Exception:  # noqa: BLE001
-            pass
-    except Exception as exc:  # noqa: BLE001
+        except Exception:
+            log.warning("DM sent but the public reply failed on comment %s", c.id, exc_info=True)
+    except Exception as exc:
         c.reply_status, c.error = "failed", f"DM failed: {exc}"[:500]
     save(c)
 
@@ -196,7 +196,7 @@ def _post_reply(acc: Account, c: Comment) -> bool:
         c.reply_status, c.reply_external_id, c.error = "posted", rid, ""
         save(c)
         return True
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         c.reply_status, c.error = "failed", str(exc)[:500]
         save(c)
         return False

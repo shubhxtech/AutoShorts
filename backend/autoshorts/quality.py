@@ -17,7 +17,7 @@ def run(path: str | Path, stats: dict, moment: Moment, src: Source, words: list[
     results: list[dict] = []
     try:
         pr = probe(path)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return False, [_check("file", False, f"unreadable: {exc}")], {}
     results.append(_check("format", pr.width == 1080 and pr.height == 1920 and pr.vcodec == "h264" and pr.has_audio,
                           f"{pr.width}x{pr.height} {pr.vcodec}, audio={'yes' if pr.has_audio else 'no'}"))

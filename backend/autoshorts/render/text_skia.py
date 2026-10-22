@@ -73,7 +73,7 @@ def ensure_fonts() -> list[Path]:
                 r.raise_for_status()
                 p.write_bytes(r.content)
                 log.info("downloaded font %s", name)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log.warning("couldn't download %s (%s); using system fonts", name, exc)
                 continue
         out.append(p)
@@ -187,7 +187,7 @@ def render(lines, style) -> np.ndarray:
         rrect(pad, pad, W - 2 * pad, H - 2 * pad, style.background_radius, style.background)
     y = pad + bg_py
     tops = []
-    for (w, asc, desc), lh in zip(metrics, line_h):
+    for (_w, asc, desc), lh in zip(metrics, line_h):
         extra = (lh - (asc + desc)) / 2
         tops.append(y + extra)          # top of the line box; the paragraph's own origin
         y += lh

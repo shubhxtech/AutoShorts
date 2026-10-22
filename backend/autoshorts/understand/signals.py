@@ -18,15 +18,7 @@ from ..media import load_wav_mono
 
 HOP_S = 0.1
 
-STOPWORDS = set("""
-a an the and or but so if then than that this these those is are was were be been being am do does did done
-have has had having i me my mine we us our you your yours he him his she her hers it its they them their
-what which who whom whose where when why how all any both each few more most other some such no nor not only
-own same too very can will just should now of in on at by for with about against between into through during
-before after above below to from up down out off over under again further once here there also yeah yes okay ok
-like um uh gonna wanna kind sort really actually basically literally right know mean thing things get got
-going go one two lot little bit something anything everything stuff way
-""".split())
+STOPWORDS = set(["a", "an", "the", "and", "or", "but", "so", "if", "then", "than", "that", "this", "these", "those", "is", "are", "was", "were", "be", "been", "being", "am", "do", "does", "did", "done", "have", "has", "had", "having", "i", "me", "my", "mine", "we", "us", "our", "you", "your", "yours", "he", "him", "his", "she", "her", "hers", "it", "its", "they", "them", "their", "what", "which", "who", "whom", "whose", "where", "when", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "too", "very", "can", "will", "just", "should", "now", "of", "in", "on", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "up", "down", "out", "off", "over", "under", "again", "further", "once", "here", "there", "also", "yeah", "yes", "okay", "ok", "like", "um", "uh", "gonna", "wanna", "kind", "sort", "really", "actually", "basically", "literally", "right", "know", "mean", "thing", "things", "get", "got", "going", "go", "one", "two", "lot", "little", "bit", "something", "anything", "everything", "stuff", "way"])
 
 # Words that tend to open or carry high-retention moments.
 TRIGGERS = {

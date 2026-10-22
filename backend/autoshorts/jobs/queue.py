@@ -7,9 +7,10 @@ Mac stays responsive; "light" jobs (publishing, metrics, comments) run in parall
 from __future__ import annotations
 
 import traceback
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Callable
+from typing import Any
 
 from sqlalchemy import text
 from sqlmodel import select
@@ -35,7 +36,7 @@ class Retry(Exception):
 
 @dataclass
 class TaskSpec:
-    fn: Callable[["JobContext", dict], Any]
+    fn: Callable[[JobContext, dict], Any]
     lane: str
     max_attempts: int
 
@@ -163,7 +164,7 @@ def run_one(job: Job) -> None:
     except Retry as r:
         status, error, retried = "queued", str(r), True
         run_after = utcnow() + timedelta(seconds=r.delay_s)
-    except Exception as exc:  # noqa: BLE001 - every failure is recorded on the job
+    except Exception as exc:
         error = f"{type(exc).__name__}: {exc}"
         log.error("job %s %s failed: %s\n%s", job.id, job.kind, error, traceback.format_exc())
         if job.attempts < job.max_attempts:

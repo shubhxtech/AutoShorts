@@ -113,7 +113,7 @@ def add_file(path: Path, name: str = typer.Option("", help="Source name"),
              credit: str = typer.Option("", help="Credit text shown on the end card"),
              niche: str = typer.Option(""), run: bool = typer.Option(True, help="Process right away in this terminal")):
     """Register a local video you have rights to and (optionally) process it now."""
-    from .db import save, session
+    from .db import save
     from .jobs.queue import enqueue
     from .models import Source, Video
 
