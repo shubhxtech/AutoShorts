@@ -71,8 +71,24 @@ def scale_sprite(img: np.ndarray, s: float) -> np.ndarray:
 _MAC = sys.platform == "darwin"
 
 
+def _backend() -> str:
+    """coretext on macOS, skia elsewhere (CLIPFORGE_TEXT=skia|pillow forces one), Pillow as a last resort."""
+    import os
+
+    forced = os.environ.get("CLIPFORGE_TEXT", "").lower()
+    if forced in ("skia", "pillow"):
+        return forced
+    if _have_coretext():
+        return "coretext"
+    from . import text_skia
+
+    return "skia" if text_skia.available() else "pillow"
+
+
 def _have_coretext() -> bool:
-    if not _MAC:
+    import os
+
+    if not _MAC or os.environ.get("CLIPFORGE_TEXT", "").lower() in ("skia", "pillow"):
         return False
     try:
         import CoreText  # noqa: F401
@@ -222,6 +238,11 @@ def font_exists(name: str) -> bool:
 
 
 def resolve_font(*names: str) -> str:
+    if _backend() == "skia":
+        from .text_skia import FONT_MAP
+
+        # Every Mac font the editor uses has an open look-alike, so keep the first (most specific) choice.
+        return next((n for n in names if n in FONT_MAP), next((n for n in names if n), names[-1]))
     for n in names:
         if n and font_exists(n):
             return n
@@ -283,14 +304,24 @@ def _render_pillow(lines: list[list[Span]], style: TextStyle) -> np.ndarray:
 
 
 def render(lines: list[list[Span]], style: TextStyle) -> np.ndarray:
-    if _have_coretext():
+    b = _backend()
+    if b == "coretext":
         return _render_coretext(lines, style)
+    if b == "skia":
+        from . import text_skia
+
+        return text_skia.render(lines, style)
     return _render_pillow(lines, style)
 
 
 def measure(text: str, style: TextStyle, scale: float = 1.0) -> float:
-    if _have_coretext():
+    b = _backend()
+    if b == "coretext":
         return ct_measure(text, style.font, style.size * scale)
+    if b == "skia":
+        from . import text_skia
+
+        return text_skia.measure(text, style.font, style.size * scale)
     return _pil_font(int(style.size * scale)).getlength(text)
 
 
