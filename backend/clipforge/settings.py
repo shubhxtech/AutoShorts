@@ -15,6 +15,9 @@ from .models import Setting, utcnow
 
 DEFAULTS: dict[str, Any] = {
     # Local LLM (MLX, runs on-device). The fast model is used for bulk scoring and comment triage.
+    "llm_backend": "auto",                # auto | mlx (Apple Silicon) | server (Ollama / LM Studio / llama.cpp)
+    "llm_server_url": "http://localhost:11434/v1",
+    "llm_server_model": "qwen3:8b",
     "llm_model": "mlx-community/Qwen3.5-9B-MLX-4bit",
     "llm_fast_model": "mlx-community/Qwen3.5-9B-MLX-4bit",
     "llm_enabled": True,
@@ -33,7 +36,7 @@ DEFAULTS: dict[str, Any] = {
     # Rendering
     "variants_per_moment": 3,
     "fps": 30,
-    "encoder": "auto",                    # auto | videotoolbox | x264
+    "encoder": "auto",                    # auto | videotoolbox | nvenc | qsv | amf | x264
     "video_bitrate": "10M",
     "jump_cuts": True,
     "max_pause_s": 0.45,
@@ -41,6 +44,7 @@ DEFAULTS: dict[str, Any] = {
     "progress_bar": True,
     "color_grade": True,
     "sfx": True,                          # only where something visual happens (see edit presets)
+    "unload_idle_minutes": 3,             # drop cached models after this many idle minutes (0 = keep them)
     "faceless_music": True,               # faceless videos get a generated (royalty-free) bed by default
     "music_enabled": False,               # top podcast clips rarely use music; enable once you add licensed tracks
     "music_volume_db": -24,
@@ -52,7 +56,7 @@ DEFAULTS: dict[str, Any] = {
     "ai_broll": 1,                        # AI-drawn cutaways per clip (0 = off; each takes ~1 min to draw once)
     "broll_style": "",                    # image style for b-roll (empty = cinematic)
     "narrated_intros": False,             # offline macOS voice reads the hook over a held frame
-    "tts_voice": "",                      # e.g. "Samantha" or a Premium voice you've downloaded
+    "tts_voice": "",                      # voice id for narrated intros, e.g. "design:documentary" (empty = default)
     # Quality checks
     "target_lufs": -14.0,
     "max_duration_youtube": 180,

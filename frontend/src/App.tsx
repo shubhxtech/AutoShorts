@@ -5,6 +5,7 @@ import {
   Pause, Play, Radar, Wand2, Settings as SettingsIcon, ShieldCheck, Sun, Users, Workflow, X,
 } from "lucide-react";
 import { api, type Summary } from "./api";
+import { MemoryPanel } from "./components/MemoryPanel";
 import { useApi } from "./hooks";
 import Today from "./pages/Today";
 import Review from "./pages/Review";
@@ -93,6 +94,7 @@ export default function App() {
           ))}
         </nav>
         <div className="space-y-2 border-t border-line p-3">
+          <MemoryPanel />
           <button onClick={togglePause} className={`btn w-full ${summary?.paused ? "bg-warn/15 text-warn" : "bg-good/10 text-good"}`}>
             {summary?.paused ? <Play size={15} /> : <Pause size={15} />}
             {summary?.paused ? "Automation paused" : "Automation running"}

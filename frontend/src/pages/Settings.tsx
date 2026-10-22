@@ -44,7 +44,7 @@ export default function Settings() {
 
   if (!data) return <Page title="Settings"><div className="text-dim">Loading…</div></Page>;
   return (
-    <Page title="Settings" subtitle={`Everything runs on this Mac. Data lives in ${data._paths?.home}`}
+    <Page title="Settings" subtitle={`Everything runs on this computer. Data lives in ${data._paths?.home}`}
       actions={<span className="flex items-center gap-2 text-sm text-dim">{dirty ? "Saving…" : savedAt ? <><CheckCircle2 size={15} className="text-good" /> Saved</> : "Changes save automatically"}
         <button className="btn-outline !py-1.5" onClick={() => save()}><Save size={14} /> Save now</button></span>}>
       <div className="grid gap-6 lg:grid-cols-2">
@@ -58,7 +58,19 @@ export default function Settings() {
               <select className="input" value={s.whisper_model} onChange={str("whisper_model")}>
                 {models?.whisper.map((m) => <option key={m.id} value={m.id}>{m.id.split("/")[1]} · {m.size_gb} GB · {m.note}{m.downloaded ? " ✓" : ""}</option>)}
               </select></Field>
-            <p className="text-xs text-mute"><Download size={11} className="inline" /> Models download automatically on first use. ✓ = already on this Mac.</p>
+            <Field label="Where the language model runs" hint="Auto: built in on Apple Silicon, otherwise a local server such as Ollama or LM Studio">
+              <select className="input" value={s.llm_backend || "auto"} onChange={str("llm_backend")}>
+                <option value="auto">Auto</option><option value="mlx">Built in (Apple Silicon)</option><option value="server">Local server (Ollama, LM Studio, llama.cpp)</option>
+              </select></Field>
+            {(s.llm_backend === "server") && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Server address"><input className="input" value={s.llm_server_url || ""} onChange={str("llm_server_url")} /></Field>
+                <Field label="Model name" hint="e.g. qwen3:8b in Ollama"><input className="input" value={s.llm_server_model || ""} onChange={str("llm_server_model")} /></Field>
+              </div>
+            )}
+            <Field label="Free memory after idle (minutes)" hint="Unloads AI models when nothing is running, to save RAM and battery. 0 keeps them loaded.">
+              <input type="number" min={0} className="input" value={s.unload_idle_minutes ?? 3} onChange={num("unload_idle_minutes")} /></Field>
+            <p className="text-xs text-mute"><Download size={11} className="inline" /> Models download automatically on first use. ✓ = already on this machine.</p>
             <Toggle checked={!!s.llm_enabled} onChange={(v) => set("llm_enabled", v)} label="Use the local LLM (off = faster heuristics only)" />
           </div>
         </Card>
@@ -82,7 +94,7 @@ export default function Settings() {
             <Field label="Hook on screen (s)"><input type="number" step="0.1" className="input" value={s.hook_seconds} onChange={num("hook_seconds")} /></Field>
             <Field label="Cut pauses longer than (s)"><input type="number" step="0.05" className="input" value={s.max_pause_s} onChange={num("max_pause_s")} /></Field>
             <Field label="Caption font (optional)" hint="PostScript name, e.g. Montserrat-ExtraBold"><input className="input" value={s.caption_font} onChange={str("caption_font")} /></Field>
-            <Field label="AI b-roll per clip" hint="Cutaways drawn on this Mac for things the speaker describes (~1 min each, once)">
+            <Field label="AI b-roll per clip" hint="Cutaways drawn on this computer for things the speaker describes (~1 min each, once)">
               <select className="input" value={s.ai_broll} onChange={(e) => set("ai_broll", Number(e.target.value))}>
                 <option value={0}>Off</option><option value={1}>1 cutaway</option><option value={2}>2 cutaways</option></select></Field>
             <Field label="Faceless image quality"><select className="input" value={s.faceless_quality} onChange={str("faceless_quality")}>

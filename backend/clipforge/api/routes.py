@@ -734,6 +734,27 @@ def export_clip(cid: int, s: Session = Depends(get_session)):
     return {"ready": True, "url": media_url(c.file_path)}
 
 
+@router.get("/system/memory")
+def system_memory():
+    """What the worker has loaded, its RAM use, and machine totals."""
+    try:
+        import psutil
+
+        vm = psutil.virtual_memory()
+        machine = {"total_gb": round(vm.total / 1e9, 1), "used_pct": vm.percent}
+    except Exception:  # noqa: BLE001
+        machine = {}
+    return {"worker": settings.get("worker_memory") or {}, "last_free": settings.get("last_free_memory") or {},
+            "idle_minutes": settings.get("unload_idle_minutes"), "machine": machine}
+
+
+@router.post("/system/free-memory")
+def free_memory():
+    """Ask the worker to drop its cached models (now if idle, otherwise right after the current job)."""
+    settings.set("free_memory_request", utcnow().isoformat())
+    return {"ok": True}
+
+
 @router.post("/clips/{cid}/titles")
 def clip_titles(cid: int, s: Session = Depends(get_session)):
     """Ask the local LLM for 10 title options (arrive in clip.meta.title_options)."""
