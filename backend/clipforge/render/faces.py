@@ -1,7 +1,8 @@
 """Face detection, tracking and active-speaker estimation.
 
-Detection uses Apple's Vision framework (Neural Engine, no model download) and
-falls back to OpenCV's Haar cascade elsewhere. Faces are linked into tracks
+Detection uses Apple's Vision framework on macOS and OpenCV's YuNet detector
+(a 230 KB ONNX model, downloaded once) on Windows and Linux, with Haar cascades
+as a last resort. Faces are linked into tracks
 across sampled frames; the active speaker is the track whose mouth moves most
 while someone is talking.
 """
@@ -94,6 +95,61 @@ class VisionDetector:
         return faces
 
 
+YUNET_URL = "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
+
+
+class YuNetDetector:
+    """Cross-platform detector: box + 5 landmarks. Mouth opening is estimated from the image itself
+    (an open mouth shows a dark cavity between the mouth corners), which is all the speaker tracker needs."""
+
+    def __init__(self):
+        import cv2
+        import httpx
+
+        from ..config import paths
+
+        model = paths().home / "models" / "face_detection_yunet_2023mar.onnx"
+        if not model.exists():
+            model.parent.mkdir(parents=True, exist_ok=True)
+            r = httpx.get(YUNET_URL, timeout=60, follow_redirects=True)
+            r.raise_for_status()
+            model.write_bytes(r.content)
+        self.net = cv2.FaceDetectorYN.create(str(model), "", (320, 320), score_threshold=0.7, nms_threshold=0.3)
+
+    def __call__(self, frame_bgr: np.ndarray) -> list[Face]:
+        import cv2
+
+        h, w = frame_bgr.shape[:2]
+        self.net.setInputSize((w, h))
+        _, dets = self.net.detect(frame_bgr)
+        if dets is None:
+            return []
+        gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
+        faces = []
+        for d in dets:
+            x, y, fw, fh = (float(v) for v in d[:4])
+            if fh < h * 0.06:
+                continue
+            rmx, rmy, lmx, lmy = d[10], d[11], d[12], d[13]          # mouth corners
+            mw = max(4.0, abs(lmx - rmx))
+            cx, cy = (rmx + lmx) / 2, (rmy + lmy) / 2
+            x0, x1 = int(cx - mw * 0.35), int(cx + mw * 0.35)
+            y0, y1 = int(cy - mw * 0.15), int(cy + mw * 0.45)
+            sx0, sx1 = int(x + fw * 0.3), int(x + fw * 0.7)
+            sy0, sy1 = int(y + fh * 0.45), int(y + fh * 0.6)          # cheek/nose band = skin reference
+            mouth = 0.0
+            if 0 <= x0 < x1 <= w and 0 <= y0 < y1 <= h and 0 <= sx0 < sx1 <= w and 0 <= sy0 < sy1 <= h:
+                region = gray[y0:y1, x0:x1].astype(np.float32)
+                skin = float(np.median(gray[sy0:sy1, sx0:sx1]))
+                dark = (region < skin * 0.55).mean()                  # share of cavity-dark pixels
+                mouth = float(dark) * 0.6
+            # YuNet boxes include the forehead; the framing code expects Vision's eyebrows-to-chin box.
+            vh = fh * 0.66
+            faces.append(Face(x=(x + fw / 2) / w, y=(y + fh - vh / 2) / h, w=fw / w, h=vh / h, mouth=mouth,
+                              conf=float(d[14])))
+        return faces
+
+
 class HaarDetector:
     """OpenCV fallback for non-Mac systems (Haar cascades left core OpenCV in 5.x)."""
 
@@ -123,12 +179,20 @@ _detector = None
 def detector():
     global _detector
     if _detector is None:
-        if sys.platform == "darwin":
+        import os
+
+        if sys.platform == "darwin" and os.environ.get("CLIPFORGE_FACES", "") != "yunet":
             try:
                 _detector = VisionDetector()
                 return _detector
             except Exception as exc:  # noqa: BLE001
                 log.info("Apple Vision unavailable (%s); using OpenCV", exc)
+        if hasattr(__import__("cv2"), "FaceDetectorYN"):
+            try:
+                _detector = YuNetDetector()
+                return _detector
+            except Exception as exc:  # noqa: BLE001
+                log.warning("YuNet face detector unavailable (%s); using Haar cascades", exc)
         _detector = HaarDetector()
     return _detector
 
