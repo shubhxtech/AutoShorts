@@ -13,6 +13,7 @@ No subscriptions. No per-minute credits. No uploads to anyone's cloud.
   <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white" />
   <img alt="Linux" src="https://img.shields.io/badge/Linux-supported-FCC624?logo=linux&logoColor=black" />
   <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white" />
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-22C55E" /></a>
   <img alt="Local AI" src="https://img.shields.io/badge/AI-100%25%20local-FF2E63" />
   <a href="https://github.com/shubhxtech/AutoShorts/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/shubhxtech/AutoShorts?style=social" /></a>
 </p>
@@ -162,6 +163,10 @@ If AutoShorts saves you a subscription, a ⭐ helps other creators find it.
 ## Responsible use
 
 AutoShorts is for content you own or have permission to use. Every source needs a rights record, credits are kept, and publishing goes through official platform APIs only.
+
+## License
+
+[MIT](LICENSE). The AI models AutoShorts downloads have their own licenses; check them before commercial use.
 
 ## Acknowledgements
 
