@@ -11,7 +11,7 @@ Every model runs on the user's machine. Nothing is sent to a paid API.
 | Images | Z-Image-Turbo | mflux, 4-bit | diffusers, CUDA (CPU offload under 16 GB VRAM) |
 | Faces | — | Apple Vision | OpenCV YuNet (230 KB ONNX) |
 
-Each subsystem picks its backend once with an `auto` rule and can be forced with a setting or environment variable for testing (`llm_backend`, `CLIPFORGE_TEXT`, `CLIPFORGE_FACES`, `CLIPFORGE_VOICES`, `CLIPFORGE_IMAGES`).
+Each subsystem picks its backend once with an `auto` rule and can be forced with a setting or environment variable for testing (`llm_backend`, `AUTOSHORTS_TEXT`, `AUTOSHORTS_FACES`, `AUTOSHORTS_VOICES`, `AUTOSHORTS_IMAGES`).
 
 ## Why these models
 

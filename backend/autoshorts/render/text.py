@@ -72,10 +72,10 @@ _MAC = sys.platform == "darwin"
 
 
 def _backend() -> str:
-    """coretext on macOS, skia elsewhere (CLIPFORGE_TEXT=skia|pillow forces one), Pillow as a last resort."""
+    """coretext on macOS, skia elsewhere (AUTOSHORTS_TEXT=skia|pillow forces one), Pillow as a last resort."""
     import os
 
-    forced = os.environ.get("CLIPFORGE_TEXT", "").lower()
+    forced = os.environ.get("AUTOSHORTS_TEXT", "").lower()
     if forced in ("skia", "pillow"):
         return forced
     if _have_coretext():
@@ -88,7 +88,7 @@ def _backend() -> str:
 def _have_coretext() -> bool:
     import os
 
-    if not _MAC or os.environ.get("CLIPFORGE_TEXT", "").lower() in ("skia", "pillow"):
+    if not _MAC or os.environ.get("AUTOSHORTS_TEXT", "").lower() in ("skia", "pillow"):
         return False
     try:
         import CoreText  # noqa: F401

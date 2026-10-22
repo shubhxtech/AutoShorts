@@ -1,8 +1,8 @@
-// ClipForge for macOS: a native shell around the local ClipForge engine.
+// AutoShorts for macOS: a native shell around the local AutoShorts engine.
 //
-// - First launch installs the engine into ~/Library/Application Support/ClipForge/runtime
+// - First launch installs the engine into ~/Library/Application Support/AutoShorts/runtime
 //   (a Python virtualenv built from the bundled sources) and shows progress.
-// - Starts `clipforge up` on localhost:3000 and shows the dashboard in a native window.
+// - Starts `autoshorts up` on localhost:3000 and shows the dashboard in a native window.
 // - Lives in the menu bar: closing the window keeps automation (scheduled posts) running.
 // - Mirrors important events (viral alerts, failed posts, clips ready) as macOS notifications.
 
@@ -16,9 +16,9 @@ let BASE = URL(string: "http://127.0.0.1:\(PORT)")!
 final class Engine {
     var process: Process?
     let support = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent("Library/Application Support/ClipForge")
+        .appendingPathComponent("Library/Application Support/AutoShorts")
     var runtime: URL { support.appendingPathComponent("runtime") }
-    var cli: URL { runtime.appendingPathComponent("venv/bin/clipforge") }
+    var cli: URL { runtime.appendingPathComponent("venv/bin/autoshorts") }
     var resources: URL { Bundle.main.resourceURL! }
     var logFile: URL { support.appendingPathComponent("logs/app.log") }
 
@@ -70,7 +70,7 @@ final class Engine {
         p.executableURL = cli
         p.arguments = ["up", "--port", "\(PORT)"]
         var env = ProcessInfo.processInfo.environment
-        env["CLIPFORGE_FRONTEND"] = resources.appendingPathComponent("web").path
+        env["AUTOSHORTS_FRONTEND"] = resources.appendingPathComponent("web").path
         env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + (env["PATH"] ?? "/usr/bin:/bin")
         p.environment = env
         if let h = try? FileHandle(forWritingTo: logFile) { p.standardOutput = h; p.standardError = h }
@@ -88,7 +88,7 @@ final class Engine {
 }
 
 final class SetupView: NSView {
-    let title = NSTextField(labelWithString: "Setting up ClipForge")
+    let title = NSTextField(labelWithString: "Setting up AutoShorts")
     let subtitle = NSTextField(wrappingLabelWithString: "Installing the local AI engine. This happens once and takes a few minutes. Models download the first time you make clips.")
     let spinner = NSProgressIndicator()
     let log = NSTextView()
@@ -146,25 +146,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNaviga
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1320, height: 860),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                           backing: .buffered, defer: false)
-        window.title = "ClipForge"
+        window.title = "AutoShorts"
         window.titlebarAppearsTransparent = true
         window.minSize = NSSize(width: 900, height: 600)
         window.center()
-        window.setFrameAutosaveName("ClipForgeMain")
+        window.setFrameAutosaveName("AutoShortsMain")
         window.isReleasedWhenClosed = false
         window.makeKeyAndOrderFront(nil)
 
         status = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        status.button?.image = NSImage(systemSymbolName: "film.stack", accessibilityDescription: "ClipForge")
+        status.button?.image = NSImage(systemSymbolName: "film.stack", accessibilityDescription: "AutoShorts")
         let m = NSMenu()
-        m.addItem(withTitle: "Open ClipForge", action: #selector(showWindow), keyEquivalent: "o")
+        m.addItem(withTitle: "Open AutoShorts", action: #selector(showWindow), keyEquivalent: "o")
         m.addItem(withTitle: "Open in Browser", action: #selector(openBrowser), keyEquivalent: "b")
         m.addItem(.separator())
         m.addItem(withTitle: "Pause Automation", action: #selector(pause), keyEquivalent: "")
         m.addItem(withTitle: "Resume Automation", action: #selector(resume), keyEquivalent: "")
         m.addItem(.separator())
         m.addItem(withTitle: "Show Logs", action: #selector(showLogs), keyEquivalent: "l")
-        m.addItem(withTitle: "Quit ClipForge", action: #selector(quit), keyEquivalent: "q")
+        m.addItem(withTitle: "Quit AutoShorts", action: #selector(quit), keyEquivalent: "q")
         status.menu = m
 
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
@@ -181,7 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNaviga
         window.contentView = v
         engine.install(onLine: { v.append($0) }, onDone: { ok in
             if ok { self.boot() } else {
-                v.append("\nSetup failed. Fix the issue above and reopen ClipForge.")
+                v.append("\nSetup failed. Fix the issue above and reopen AutoShorts.")
                 v.spinner.stopAnimation(nil)
             }
         })
@@ -189,7 +189,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNaviga
 
     func boot() {
         if !(window.contentView is SetupView) { window.contentView = SetupView(frame: window.contentView!.bounds) }
-        (window.contentView as? SetupView)?.title.stringValue = "Starting ClipForge…"
+        (window.contentView as? SetupView)?.title.stringValue = "Starting AutoShorts…"
         (window.contentView as? SetupView)?.subtitle.stringValue = "Loading the dashboard and the automation worker."
         engine.start()
         waitUntilUp(tries: 120)
@@ -232,7 +232,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNaviga
                 if initial { continue }
                 guard let kind = e["kind"] as? String, important.contains(kind) else { continue }
                 let c = UNMutableNotificationContent()
-                c.title = e["title"] as? String ?? "ClipForge"
+                c.title = e["title"] as? String ?? "AutoShorts"
                 c.body = e["body"] as? String ?? ""
                 UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "ev\(id)", content: c, trigger: nil))
             }
@@ -310,10 +310,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNaviga
         let main = NSMenu()
         let app = NSMenuItem(); main.addItem(app)
         let am = NSMenu()
-        am.addItem(withTitle: "About ClipForge", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        am.addItem(withTitle: "About AutoShorts", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         am.addItem(.separator())
-        am.addItem(withTitle: "Hide ClipForge", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
-        am.addItem(withTitle: "Quit ClipForge", action: #selector(quit), keyEquivalent: "q")
+        am.addItem(withTitle: "Hide AutoShorts", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        am.addItem(withTitle: "Quit AutoShorts", action: #selector(quit), keyEquivalent: "q")
         app.submenu = am
         let edit = NSMenuItem(); main.addItem(edit)
         let em = NSMenu(title: "Edit")

@@ -181,7 +181,7 @@ def detector():
     if _detector is None:
         import os
 
-        if sys.platform == "darwin" and os.environ.get("CLIPFORGE_FACES", "") != "yunet":
+        if sys.platform == "darwin" and os.environ.get("AUTOSHORTS_FACES", "") != "yunet":
             try:
                 _detector = VisionDetector()
                 return _detector

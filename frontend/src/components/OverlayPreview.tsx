@@ -1,5 +1,5 @@
 // Live text layer drawn over the clean base video, so text edits are instant.
-// Mirrors backend/clipforge/render/captions.py + overlays.py (same canvas size, fonts and timings);
+// Mirrors backend/autoshorts/render/captions.py + overlays.py (same canvas size, fonts and timings);
 // the final MP4 is burned by the backend with the same settings on approval.
 import { RefObject, useEffect, useMemo, useRef, useState } from "react";
 

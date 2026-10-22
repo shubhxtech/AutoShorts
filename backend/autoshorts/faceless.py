@@ -105,7 +105,7 @@ Every scene needs a concrete visual that matches its exact line. Visuals must fi
 Be accurate: if the topic is factual, only state well-established facts. If the topic is a future, predicted or hypothetical event, frame it clearly as a prediction or a "what if" (never as something that already happened), and never invent quotes from real people."""
 
 
-WIKI_HEADERS = {"User-Agent": "ClipForge/0.2 (local short-video studio; https://www.mediawiki.org/wiki/API:Etiquette) python-httpx"}
+WIKI_HEADERS = {"User-Agent": "AutoShorts/0.2 (local short-video studio; https://www.mediawiki.org/wiki/API:Etiquette) python-httpx"}
 
 
 class Queries(BaseModel):
@@ -755,7 +755,7 @@ def create(topic: str = "", reference_url: str = "", style: str = "", voice: str
     if script_text and not topic:
         topic = parse_script(script_text).get("title") or script_text.strip().splitlines()[0][:80]
     src = save(Source(name=f"Faceless: {(topic or reference_url)[:60]}", kind="direct_url", url="",
-                      rights_type="own", proof_notes="Original AI-generated video made in ClipForge",
+                      rights_type="own", proof_notes="Original AI-generated video made in AutoShorts",
                       credit_text="", niche=niche, watch=False, auto_ingest=False, cta_keyword=cta_keyword,
                       auto_publish=auto_publish, auto_publish_top=1, target_accounts=accounts or []))
     video = save(Video(source_id=src.id, external_id=f"faceless:{utcnow().timestamp()}", title=topic[:120] or "Faceless video",

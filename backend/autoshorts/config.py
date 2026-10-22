@@ -18,16 +18,22 @@ load_dotenv()
 
 def _default_home() -> Path:
     if sys.platform == "darwin":
-        return Path.home() / "Library" / "Application Support" / "ClipForge"
-    if sys.platform == "win32":
-        return Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local") / "ClipForge"
-    return Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / "clipforge"
+        base, new, old = Path.home() / "Library" / "Application Support", "AutoShorts", "ClipForge"
+    elif sys.platform == "win32":
+        base, new, old = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local"), "AutoShorts", "ClipForge"
+    else:
+        base, new, old = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share"), "autoshorts", "clipforge"
+    # Installs from before the rename keep their data where it is.
+    if not (base / new).exists() and (base / old).exists():
+        return base / old
+    return base / new
 
 
 class Paths:
     def __init__(self, home: Path):
         self.home = home
-        self.db = home / "clipforge.db"
+        legacy = home / "clipforge.db"          # databases created before the rename keep their name
+        self.db = legacy if legacy.exists() and not (home / "autoshorts.db").exists() else home / "autoshorts.db"
         self.library = home / "library"          # original source videos
         self.work = home / "work"                # transcripts, timelines, analysis
         self.clips = home / "clips"              # rendered clips + thumbs
@@ -51,25 +57,25 @@ class Paths:
 
 @lru_cache
 def paths() -> Paths:
-    home = Path(os.environ.get("CLIPFORGE_HOME") or _default_home()).expanduser()
+    home = Path(os.environ.get("AUTOSHORTS_HOME") or _default_home()).expanduser()
     return Paths(home).ensure()
 
 
 def port() -> int:
-    return int(os.environ.get("CLIPFORGE_PORT", "3000"))
+    return int(os.environ.get("AUTOSHORTS_PORT", "3000"))
 
 
 def host() -> str:
-    return os.environ.get("CLIPFORGE_HOST", "127.0.0.1")
+    return os.environ.get("AUTOSHORTS_HOST", "127.0.0.1")
 
 
 def base_url() -> str:
     """Address the dashboard and OAuth callbacks are served from."""
-    return os.environ.get("CLIPFORGE_BASE_URL", f"http://localhost:{port()}")
+    return os.environ.get("AUTOSHORTS_BASE_URL", f"http://localhost:{port()}")
 
 
 def frontend_dist() -> Path | None:
-    env = os.environ.get("CLIPFORGE_FRONTEND")
+    env = os.environ.get("AUTOSHORTS_FRONTEND")
     candidates = [Path(env)] if env else []
     here = Path(__file__).resolve()
     candidates += [

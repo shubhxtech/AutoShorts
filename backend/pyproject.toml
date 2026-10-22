@@ -3,7 +3,7 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "clipforge"
+name = "autoshorts"
 version = "0.3.0"
 description = "Automated short-video studio: licensed long videos in, ready-to-post Shorts and Reels out."
 requires-python = ">=3.11"
@@ -58,16 +58,16 @@ faceless = [
 # Google Drive folders shared by link.
 drive = ["gdown>=5.2"]
 dev = ["pytest>=8", "ruff>=0.5"]
-all = ["clipforge[faceless,drive]"]
+all = ["autoshorts[faceless,drive]"]
 
 [project.scripts]
-clipforge = "clipforge.cli:app"
+autoshorts = "autoshorts.cli:app"
 
 [tool.setuptools.packages.find]
-include = ["clipforge*"]
+include = ["autoshorts*"]
 
 [tool.setuptools.package-data]
-clipforge = ["assets/**/*"]
+autoshorts = ["assets/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

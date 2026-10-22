@@ -4,7 +4,7 @@ Two macOS voices talk over a two-shot of two faces, with a hard cut to a
 close-up halfway through, pauses and filler words (so the jump cuts and
 filler removal have something to do).
 
-    python scripts/make_demo_episode.py ~/Movies/clipforge_demo.mp4
+    python scripts/make_demo_episode.py ~/Movies/autoshorts_demo.mp4
 """
 
 from __future__ import annotations
@@ -120,4 +120,4 @@ def main(out_path: str) -> None:
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "~/Movies/clipforge_demo.mp4")
+    main(sys.argv[1] if len(sys.argv) > 1 else "~/Movies/autoshorts_demo.mp4")

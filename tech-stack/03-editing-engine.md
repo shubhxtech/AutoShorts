@@ -1,6 +1,6 @@
 # 03 · Editing engine
 
-The editing engine turns a moment (a time range plus metadata) into a vertical 1080x1920 clip. It lives in `backend/clipforge/render/`.
+The editing engine turns a moment (a time range plus metadata) into a vertical 1080x1920 clip. It lives in `backend/autoshorts/render/`.
 
 ```mermaid
 flowchart LR

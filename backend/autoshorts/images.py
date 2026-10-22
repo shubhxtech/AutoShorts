@@ -24,7 +24,7 @@ TORCH_REPO = "Tongyi-MAI/Z-Image-Turbo"
 def backend() -> str:
     import os
 
-    forced = os.environ.get("CLIPFORGE_IMAGES", "").lower()
+    forced = os.environ.get("AUTOSHORTS_IMAGES", "").lower()
     if forced in ("mlx", "torch"):
         return forced
     try:

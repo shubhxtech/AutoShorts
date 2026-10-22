@@ -45,11 +45,11 @@ export default function Sources() {
   const set = (k: keyof Source, v: unknown) => setForm((f) => ({ ...(f || {}), [k]: v }));
 
   return (
-    <Page title="Rights registry" subtitle="Every source ClipForge may clip from, with proof of permission. Nothing is downloaded or posted without a valid entry."
+    <Page title="Rights registry" subtitle="Every source AutoShorts may clip from, with proof of permission. Nothing is downloaded or posted without a valid entry."
       actions={<button className="btn-primary" onClick={() => setForm({ ...BLANK })}><Plus size={16} /> Add source</button>}>
       {!data?.length ? (
         <Empty icon={<ShieldCheck size={28} />} title="No sources yet">
-          Links you paste on the Today page are registered here automatically. Add channels, podcast feeds or clipping campaigns to have ClipForge watch them for new viral videos.
+          Links you paste on the Today page are registered here automatically. Add channels, podcast feeds or clipping campaigns to have AutoShorts watch them for new viral videos.
         </Empty>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

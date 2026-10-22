@@ -1,4 +1,4 @@
-"""Command line: `clipforge up` starts everything."""
+"""Command line: `autoshorts up` starts everything."""
 
 from __future__ import annotations
 
@@ -15,11 +15,11 @@ from rich.table import Table
 
 from . import __version__
 
-app = typer.Typer(add_completion=False, help="ClipForge – automated short-video studio")
+app = typer.Typer(add_completion=False, help="AutoShorts – automated short-video studio")
 console = Console()
 
 
-def _boot(log_name: str = "clipforge") -> None:
+def _boot(log_name: str = "autoshorts") -> None:
     from .db import init_db
     from .logs import setup_logging
 
@@ -33,7 +33,7 @@ def _serve(host: str, port: int) -> None:
     from .logs import setup_logging
 
     setup_logging("api")
-    uvicorn.run("clipforge.api.app:app", host=host, port=port, log_level="warning", access_log=False)
+    uvicorn.run("autoshorts.api.app:app", host=host, port=port, log_level="warning", access_log=False)
 
 
 def _work() -> None:
@@ -53,13 +53,13 @@ def up(port: int = typer.Option(None, help="Dashboard port (default 3000)"),
     _boot()
     port = port or config.port()
     host = host or config.host()
-    os.environ["CLIPFORGE_PORT"] = str(port)
+    os.environ["AUTOSHORTS_PORT"] = str(port)
     ctx = mp.get_context("spawn")
-    api = ctx.Process(target=_serve, args=(host, port), name="clipforge-api", daemon=False)
-    worker = ctx.Process(target=_work, name="clipforge-worker", daemon=False)
+    api = ctx.Process(target=_serve, args=(host, port), name="autoshorts-api", daemon=False)
+    worker = ctx.Process(target=_work, name="autoshorts-worker", daemon=False)
     api.start()
     worker.start()
-    console.print(f"[bold green]ClipForge {__version__}[/] running → [link]http://localhost:{port}[/link]")
+    console.print(f"[bold green]AutoShorts {__version__}[/] running → [link]http://localhost:{port}[/link]")
     console.print(f"data: {config.paths().home}")
     stopping = False
 

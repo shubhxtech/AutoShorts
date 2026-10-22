@@ -72,7 +72,7 @@ export default function App() {
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 flex-col border-r border-line bg-surface transition-transform md:static md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-14 items-center gap-2 px-5">
           <img src="/icon.svg" className="h-7 w-7" alt="" />
-          <span className="font-semibold tracking-tight">ClipForge</span>
+          <span className="font-semibold tracking-tight">AutoShorts</span>
           <button className="btn-ghost ml-auto !p-1.5 md:hidden" onClick={() => setOpen(false)} aria-label="Close menu"><X size={16} /></button>
         </div>
         <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-1">
@@ -107,7 +107,7 @@ export default function App() {
       <main className="min-w-0 flex-1 overflow-y-auto">
         <div className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-line bg-page/80 px-4 backdrop-blur md:hidden">
           <button className="btn-ghost !p-1.5" onClick={() => setOpen(true)} aria-label="Open menu"><Menu size={18} /></button>
-          <span className="font-semibold">ClipForge</span>
+          <span className="font-semibold">AutoShorts</span>
           <NavLink to="/" className="ml-auto text-dim"><Bell size={18} /></NavLink>
         </div>
         <Routes>

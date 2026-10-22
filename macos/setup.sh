@@ -1,5 +1,5 @@
 #!/bin/bash
-# First-launch installer for the ClipForge engine (called by the app).
+# First-launch installer for the AutoShorts engine (called by the app).
 #   setup.sh <bundled backend dir> <runtime dir>
 set -euo pipefail
 SRC="$1"
@@ -35,7 +35,7 @@ if [ ! -x "$RUNTIME/venv/bin/python" ]; then
   "$PY" -m venv "$RUNTIME/venv"
 fi
 "$RUNTIME/venv/bin/python" -m pip install --upgrade pip >/dev/null
-echo "→ Installing ClipForge (this downloads the AI libraries once)"
+echo "→ Installing AutoShorts (this downloads the AI libraries once)"
 rm -rf "$RUNTIME/src" && cp -R "$SRC" "$RUNTIME/src"
 "$RUNTIME/venv/bin/pip" install --progress-bar off "$RUNTIME/src[faceless]" 2>&1 | grep -vE "^\s*(Requirement already|Using cached)" || true
 cp "$SRC/VERSION" "$RUNTIME/VERSION"

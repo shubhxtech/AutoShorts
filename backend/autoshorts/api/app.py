@@ -17,7 +17,7 @@ from .routes import router
 setup_logging("api")
 init_db()
 
-app = FastAPI(title="ClipForge", version=__version__, docs_url="/api/docs", openapi_url="/api/openapi.json")
+app = FastAPI(title="AutoShorts", version=__version__, docs_url="/api/docs", openapi_url="/api/openapi.json")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
                    allow_methods=["*"], allow_headers=["*"])
 app.include_router(router)
@@ -91,7 +91,7 @@ def spa(rest: str):
     if rest.startswith(("api/", "media/", "public/")):
         raise HTTPException(404)
     if _dist is None:
-        return HTMLResponse("<h2>ClipForge API is running.</h2><p>Build the dashboard with "
+        return HTMLResponse("<h2>AutoShorts API is running.</h2><p>Build the dashboard with "
                             "<code>make web</code> (or run <code>npm run dev</code> in frontend/).</p>")
     target = _dist / rest
     if rest and _inside(target, _dist) and target.is_file():

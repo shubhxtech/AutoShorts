@@ -49,7 +49,7 @@ def _status_text() -> str:
 
     s = today_summary()
     return (
-        f"<b>ClipForge</b> {'⏸ paused' if settings.get('automation_paused') else '▶️ running'}\n"
+        f"<b>AutoShorts</b> {'⏸ paused' if settings.get('automation_paused') else '▶️ running'}\n"
         f"Waiting for review: <b>{s['review']}</b>\n"
         f"Scheduled posts: <b>{s['scheduled']}</b>\n"
         f"Published today: <b>{s['published_today']}</b>\n"
@@ -64,7 +64,7 @@ def _handle(msg: dict) -> None:
     known = settings.get("telegram_chat_id")
     if text == "/start" and not known:
         settings.set("telegram_chat_id", chat_id)
-        send("Connected. You'll get ClipForge alerts here. Try /status.", chat_id)
+        send("Connected. You'll get AutoShorts alerts here. Try /status.", chat_id)
         return
     if known and chat_id != str(known):
         return  # ignore strangers

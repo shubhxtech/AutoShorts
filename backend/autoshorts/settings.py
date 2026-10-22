@@ -101,7 +101,7 @@ ENV_KEYS = {
     "telegram_bot_token": "TELEGRAM_BOT_TOKEN",
     "telegram_chat_id": "TELEGRAM_CHAT_ID",
     "youtube_api_key": "YOUTUBE_API_KEY",
-    "public_base_url": "CLIPFORGE_PUBLIC_URL",
+    "public_base_url": "AUTOSHORTS_PUBLIC_URL",
 }
 
 

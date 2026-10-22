@@ -2,7 +2,7 @@
 
 ## Processes
 
-`clipforge up` starts two long-running processes and supervises them (restarting either if it exits):
+`autoshorts up` starts two long-running processes and supervises them (restarting either if it exits):
 
 ```mermaid
 flowchart LR
@@ -38,10 +38,10 @@ The two processes communicate only through the database: the API writes rows (jo
 
 ## Storage
 
-Everything lives in one data folder outside the repository (`~/Library/Application Support/ClipForge` on macOS, `%LOCALAPPDATA%\ClipForge` on Windows, `~/.local/share/clipforge` on Linux):
+Everything lives in one data folder outside the repository (`~/Library/Application Support/AutoShorts` on macOS, `%LOCALAPPDATA%\AutoShorts` on Windows, `~/.local/share/autoshorts` on Linux):
 
 ```
-clipforge.db        SQLite: sources, videos, moments, clips, posts, metrics, jobs, settings, bandit arms
+autoshorts.db        SQLite: sources, videos, moments, clips, posts, metrics, jobs, settings, bandit arms
 library/            downloaded source videos
 work/<video>/       transcript, timeline, masters/, faceless project files (script, shots, voice lines)
 clips/<video>/      review drafts (*_base.mp4), final burned clips, thumbnails

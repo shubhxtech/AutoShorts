@@ -51,7 +51,7 @@ try { ollama pull qwen3:8b } catch { Write-Host "Couldn't pull the model now; ru
 $start = @"
 @echo off
 cd /d "%~dp0.."
-backend\.venv\Scripts\clipforge.exe up
+backend\.venv\Scripts\autoshorts.exe up
 "@
 Set-Content -Path "scripts\start_windows.bat" -Value $start -Encoding ASCII
 

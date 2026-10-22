@@ -78,7 +78,7 @@ export default function Faceless() {
   function downloadTemplate() {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([opts?.template || ""], { type: "text/plain" }));
-    a.download = "clipforge-script-template.txt";
+    a.download = "autoshorts-script-template.txt";
     a.click();
   }
 

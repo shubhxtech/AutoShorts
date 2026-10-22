@@ -2,15 +2,15 @@ from datetime import timedelta
 
 from conftest import make_words
 
-from clipforge import llm, rights
-from clipforge.community.tasks import _funnel_match, heuristic
-from clipforge.ingest import viral
-from clipforge.models import Source, utcnow
-from clipforge.publish import hosting
-from clipforge.render import edl as E
-from clipforge.render import plan as P
-from clipforge.render.captions import STYLES, chunk_words
-from clipforge.understand.transcribe import build_sentences
+from autoshorts import llm, rights
+from autoshorts.community.tasks import _funnel_match, heuristic
+from autoshorts.ingest import viral
+from autoshorts.models import Source, utcnow
+from autoshorts.publish import hosting
+from autoshorts.render import edl as E
+from autoshorts.render import plan as P
+from autoshorts.render.captions import STYLES, chunk_words
+from autoshorts.understand.transcribe import build_sentences
 
 
 TEXT = ("Nobody tells you this. um The first million is the hardest money you will ever make. "
@@ -122,7 +122,7 @@ def test_sentence_splitting():
 
 
 def test_script_formats():
-    from clipforge.faceless import SCRIPT_TEMPLATE, parse_script
+    from autoshorts.faceless import SCRIPT_TEMPLATE, parse_script
 
     t = parse_script(SCRIPT_TEMPLATE)
     assert t["title"] == "The Stone Age Surgeon" and t["hook"].startswith("They cut")
@@ -145,7 +145,7 @@ def test_edl_excludes_dropped_lines():
 
 
 def test_snap_to_sentences_never_starts_on_a_fragment():
-    from clipforge.mining.miner import snap_to_sentences
+    from autoshorts.mining.miner import snap_to_sentences
 
     sents = [{"text": "I get up early", "s": 0, "e": 2}, {"text": "on a morning when it's cold.", "s": 2.5, "e": 5},
              {"text": "That's how you level up", "s": 6, "e": 8}, {"text": "every single day.", "s": 8.2, "e": 10}]
@@ -153,7 +153,7 @@ def test_snap_to_sentences_never_starts_on_a_fragment():
 
 
 def test_user_script_with_markdown_and_loose_visuals():
-    from clipforge.faceless import parse_script, speakable
+    from autoshorts.faceless import parse_script, speakable
 
     t = parse_script("TITLE: T\n\nHOOK: They cut off his leg.\nHe didn't die.\n\nFirst line.\n\n[visual: one]\n\n"
                      "But somehow...\n\nthe child survived.\n\n[visual: two]\n\nIt lasted **6–9 years**.\n")
@@ -165,7 +165,7 @@ def test_user_script_with_markdown_and_loose_visuals():
 
 
 def test_hindi_words_and_fillers():
-    from clipforge.render.edl import LEADING_FILLER, _norm
+    from autoshorts.render.edl import LEADING_FILLER, _norm
 
     assert _norm("तो,") == "तो" and _norm("तो") in LEADING_FILLER
     ws = make_words("तो सफलता का असली राज़ है रोज़ थोड़ा बेहतर होना और यही आदत सब बदल देती है।")
@@ -181,7 +181,7 @@ def test_overlapping_word_times_never_cut_inside_first_word():
 
 
 def test_snap_hindi_fragment():
-    from clipforge.mining.miner import snap_to_sentences
+    from autoshorts.mining.miner import snap_to_sentences
 
     sents = [{"text": "धोनी", "s": 0, "e": 1}, {"text": "ने कहा कि यह हेलिकॉप्टर शॉट है।", "s": 1.2, "e": 4},
              {"text": "सबने देखा।", "s": 4.5, "e": 6}]
@@ -189,7 +189,7 @@ def test_snap_hindi_fragment():
 
 
 def test_faceless_tidy_repairs_formats():
-    from clipforge.faceless import Scene, Script, tidy
+    from autoshorts.faceless import Scene, Script, tidy
 
     def mk(fmt, scenes):
         return Script(title="t", hook="h", scenes=scenes, youtube_title="y", instagram_caption="c", hashtags=[], format=fmt)
@@ -210,15 +210,15 @@ def test_faceless_tidy_repairs_formats():
 
 
 def test_scene_coerces_nulls():
-    from clipforge.faceless import Scene
+    from autoshorts.faceless import Scene
 
     sc = Scene.model_validate({"narration": "n", "visual": "v", "options": None, "visual2": None, "number": "#4"})
     assert sc.options == [] and sc.visual2 == "" and sc.number == 4
 
 
 def test_plan_shots_cuts_long_scenes():
-    from clipforge.faceless import Scene
-    from clipforge.faceless_formats import SceneTiming, plan_shots
+    from autoshorts.faceless import Scene
+    from autoshorts.faceless_formats import SceneTiming, plan_shots
 
     scenes = [Scene(narration="a", visual="v"), Scene(narration="b", visual="v"), Scene(narration="c", visual="v", kind="choice", options=["x", "y"])]
     tms = [SceneTiming(0, 1.8, 2.0), SceneTiming(2.0, 7.5, 7.6), SceneTiming(7.6, 10, 12)]
@@ -231,7 +231,7 @@ def test_plan_shots_cuts_long_scenes():
 
 
 def test_generated_music_is_loopable_and_quiet():
-    from clipforge.render.music import SR, render
+    from autoshorts.render.music import SR, render
 
     y = render("chill", bars=4, seed=1)
     assert y.shape[1] == 2 and y.shape[0] > SR * 8
@@ -239,14 +239,14 @@ def test_generated_music_is_loopable_and_quiet():
 
 
 def test_hook_size_matches_preview_rule():
-    from clipforge.render.overlays import hook_size
+    from autoshorts.render.overlays import hook_size
 
     assert hook_size("Can I just be myself?") == 84
     assert hook_size("x" * 50) == 66 and hook_size("x" * 80) == 58
 
 
 def test_quiz_verification_drops_unsupported_questions():
-    from clipforge.faceless import Scene, Script, tidy, verify_quiz
+    from autoshorts.faceless import Scene, Script, tidy, verify_quiz
 
     facts = ("Mercury is the smallest planet in the Solar System and has almost no atmosphere. "
              "Jupiter is the largest planet and was first visited by Pioneer 10 in 1973.")
@@ -270,12 +270,12 @@ def test_quiz_verification_drops_unsupported_questions():
 def test_skia_text_renders_devanagari_and_boxes(monkeypatch):
     import pytest
 
-    from clipforge.render import text as T
-    from clipforge.render import text_skia
+    from autoshorts.render import text as T
+    from autoshorts.render import text_skia
 
     if not text_skia.available():
         pytest.skip("skia-python not installed")
-    monkeypatch.setenv("CLIPFORGE_TEXT", "skia")
+    monkeypatch.setenv("AUTOSHORTS_TEXT", "skia")
     monkeypatch.setattr(text_skia, "ensure_fonts", lambda: [])        # system fonts only: no network in tests
     text_skia._collection.cache_clear()
     st = T.TextStyle(font=T.resolve_font("AvenirNext-Heavy", "Arial-Black"), size=60, stroke=4,
@@ -288,7 +288,7 @@ def test_skia_text_renders_devanagari_and_boxes(monkeypatch):
 
 
 def test_encoder_falls_back_to_software(monkeypatch):
-    from clipforge import media
+    from autoshorts import media
 
     monkeypatch.setattr(media, "encoders", lambda: {"libx264", "h264_nvenc"})
     monkeypatch.setattr(media, "encoder_works", lambda name: False)   # NVENC listed but no GPU
@@ -299,8 +299,8 @@ def test_encoder_falls_back_to_software(monkeypatch):
 
 
 def test_llm_server_backend(monkeypatch):
-    from clipforge import llm, settings
-    from clipforge.titles import TitleOptions
+    from autoshorts import llm, settings
+    from autoshorts.titles import TitleOptions
 
     vals = {"llm_backend": "server", "llm_enabled": True, "llm_server_url": "http://x/v1", "llm_server_model": "m"}
     monkeypatch.setattr(settings, "get", lambda k, d=None: vals.get(k, d))
@@ -314,3 +314,4 @@ def test_llm_server_backend(monkeypatch):
     monkeypatch.setattr(llm, "_server_complete", fake)
     assert llm.backend() == "server"
     assert llm.structured(TitleOptions, "s", "u").titles == ["One", "Two"] and seen["json"] is True
+

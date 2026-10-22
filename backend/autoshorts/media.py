@@ -20,12 +20,12 @@ log = logs.get("media")
 
 
 def _bin(name: str) -> str:
-    for cand in (os.environ.get(f"CLIPFORGE_{name.upper()}"), shutil.which(name),
+    for cand in (os.environ.get(f"AUTOSHORTS_{name.upper()}"), shutil.which(name),
                  f"/opt/homebrew/bin/{name}", f"/usr/local/bin/{name}"):
         if cand and Path(cand).exists():
             return cand
     raise RuntimeError(f"{name} not found. Install it: macOS `brew install ffmpeg`, Windows `winget install ffmpeg`, "
-                       "Linux `sudo apt install ffmpeg` (or set CLIPFORGE_FFMPEG to its path)")
+                       "Linux `sudo apt install ffmpeg` (or set AUTOSHORTS_FFMPEG to its path)")
 
 
 def ffmpeg_bin() -> str:

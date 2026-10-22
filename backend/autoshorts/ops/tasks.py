@@ -113,7 +113,7 @@ def health() -> dict:
             alive = (utcnow() - datetime.fromisoformat(hb)).total_seconds() < 60
         except ValueError:
             pass
-    add("worker", alive, "running" if alive else "not running: start with `clipforge up`")
+    add("worker", alive, "running" if alive else "not running: start with `autoshorts up`")
     try:
         from ..understand.transcribe import _engine
 

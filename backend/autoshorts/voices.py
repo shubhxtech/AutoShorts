@@ -69,7 +69,7 @@ def backend() -> str:
     """mlx on Apple Silicon (mlx-audio), torch everywhere else (CUDA or CPU)."""
     import os
 
-    forced = os.environ.get("CLIPFORGE_VOICES", "").lower()
+    forced = os.environ.get("AUTOSHORTS_VOICES", "").lower()
     if forced in ("mlx", "torch"):
         return forced
     try:

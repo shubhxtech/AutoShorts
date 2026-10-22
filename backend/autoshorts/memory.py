@@ -19,18 +19,18 @@ log = logs.get("memory")
 def loaded() -> list[str]:
     out = []
     m = sys.modules
-    llm = m.get("clipforge.llm")
+    llm = m.get("autoshorts.llm")
     if llm and llm._state.get("model") is not None:
         out.append(f"LLM ({str(llm._state['name']).split('/')[-1]})")
-    for mod in ("clipforge.voices", "clipforge.voices_torch"):
+    for mod in ("autoshorts.voices", "autoshorts.voices_torch"):
         v = m.get(mod)
         if v and v._loaded.get("model") is not None:
             out.append(f"voice ({v._loaded['engine']})")
     mw = m.get("mlx_whisper.transcribe")
-    tr = m.get("clipforge.understand.transcribe")
+    tr = m.get("autoshorts.understand.transcribe")
     if (mw and getattr(mw.ModelHolder, "model", None) is not None) or (tr and tr._fw_cache):
         out.append("Whisper")
-    al = m.get("clipforge.understand.align")
+    al = m.get("autoshorts.understand.align")
     if al and al._cache:
         out.append("word aligner")
     return out
@@ -53,16 +53,16 @@ def free_all() -> dict:
     before = rss_mb()
     names = loaded()
     m = sys.modules
-    if "clipforge.llm" in m:
-        m["clipforge.llm"].unload()
-    if "clipforge.voices" in m:
-        m["clipforge.voices"].unload()
-    if "clipforge.voices_torch" in m:
-        m["clipforge.voices_torch"].unload()
-    if "clipforge.understand.transcribe" in m:
-        m["clipforge.understand.transcribe"]._release()
-    if "clipforge.understand.align" in m:
-        m["clipforge.understand.align"]._cache.clear()
+    if "autoshorts.llm" in m:
+        m["autoshorts.llm"].unload()
+    if "autoshorts.voices" in m:
+        m["autoshorts.voices"].unload()
+    if "autoshorts.voices_torch" in m:
+        m["autoshorts.voices_torch"].unload()
+    if "autoshorts.understand.transcribe" in m:
+        m["autoshorts.understand.transcribe"]._release()
+    if "autoshorts.understand.align" in m:
+        m["autoshorts.understand.align"]._cache.clear()
     gc.collect()
     if "mlx.core" in m:
         try:

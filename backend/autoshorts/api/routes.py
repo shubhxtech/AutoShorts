@@ -445,7 +445,7 @@ def _video_jobs(s: Session, vid: int) -> list[Job]:
 
 @router.post("/videos/{vid}/cancel")
 def cancel_video(vid: int, s: Session = Depends(get_session)):
-    """Stop everything ClipForge is doing for this video (download, transcription, rendering)."""
+    """Stop everything AutoShorts is doing for this video (download, transcription, rendering)."""
     v = s.get(Video, vid)
     if not v:
         raise HTTPException(404)

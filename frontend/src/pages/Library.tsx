@@ -8,7 +8,7 @@ import { PasteLink } from "../components/PasteLink";
 export default function LibraryPage() {
   const { data, reload } = useApi<Video[]>("/videos?status=queued,downloading,transcribing,analyzing,mining,rendering,ready,failed,skipped&limit=200", 6000);
   return (
-    <Page title="Library" subtitle="Every video you've given ClipForge, with its clips and transcript.">
+    <Page title="Library" subtitle="Every video you've given AutoShorts, with its clips and transcript.">
       <PasteLink onQueued={reload} />
       <div className="mt-6">
         {!data?.length ? (

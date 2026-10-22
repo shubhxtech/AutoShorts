@@ -1,9 +1,9 @@
 #!/bin/bash
-# Builds dist/ClipForge.app and dist/ClipForge.dmg
+# Builds dist/AutoShorts.app and dist/AutoShorts.dmg
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/dist"
-APP="$OUT/ClipForge.app"
+APP="$OUT/AutoShorts.app"
 VERSION="$(cat "$ROOT/backend/VERSION")"
 
 echo "→ Building the dashboard"
@@ -12,7 +12,7 @@ echo "→ Building the dashboard"
 echo "→ Compiling the macOS shell"
 rm -rf "$APP" && mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 swiftc -O -target arm64-apple-macos13.0 -framework AppKit -framework WebKit -framework UserNotifications \
-  "$ROOT/macos/Sources/main.swift" -o "$APP/Contents/MacOS/ClipForge"
+  "$ROOT/macos/Sources/main.swift" -o "$APP/Contents/MacOS/AutoShorts"
 
 echo "→ Bundling the engine"
 mkdir -p "$APP/Contents/Resources/backend"
@@ -30,12 +30,12 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>CFBundleName</key><string>ClipForge</string>
-  <key>CFBundleDisplayName</key><string>ClipForge</string>
-  <key>CFBundleIdentifier</key><string>app.clipforge.studio</string>
+  <key>CFBundleName</key><string>AutoShorts</string>
+  <key>CFBundleDisplayName</key><string>AutoShorts</string>
+  <key>CFBundleIdentifier</key><string>app.autoshorts.studio</string>
   <key>CFBundleVersion</key><string>$VERSION</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
-  <key>CFBundleExecutable</key><string>ClipForge</string>
+  <key>CFBundleExecutable</key><string>AutoShorts</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
@@ -49,9 +49,9 @@ echo "→ Signing (ad-hoc)"
 codesign --force --deep --sign - "$APP" >/dev/null
 
 echo "→ Disk image"
-rm -f "$OUT/ClipForge.dmg"; STAGE="$OUT/dmg"; rm -rf "$STAGE"; mkdir -p "$STAGE"
+rm -f "$OUT/AutoShorts.dmg"; STAGE="$OUT/dmg"; rm -rf "$STAGE"; mkdir -p "$STAGE"
 cp -R "$APP" "$STAGE/"; ln -s /Applications "$STAGE/Applications"
-hdiutil create -volname "ClipForge" -srcfolder "$STAGE" -ov -format UDZO "$OUT/ClipForge.dmg" >/dev/null
+hdiutil create -volname "AutoShorts" -srcfolder "$STAGE" -ov -format UDZO "$OUT/AutoShorts.dmg" >/dev/null
 rm -rf "$STAGE"
 echo "✓ $APP"
-echo "✓ $OUT/ClipForge.dmg"
+echo "✓ $OUT/AutoShorts.dmg"

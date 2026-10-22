@@ -23,7 +23,7 @@ export default function Optimizer() {
   const { data, reload } = useApi<O>("/optimizer", 60000);
   const m = data?.model;
   return (
-    <Page title="Optimizer" subtitle="ClipForge learns which choices beat each page's median views and makes more of them, while still testing alternatives."
+    <Page title="Optimizer" subtitle="AutoShorts learns which choices beat each page's median views and makes more of them, while still testing alternatives."
       actions={<button className="btn-outline" onClick={async () => { await api.post("/optimizer/run"); toast("ok", "Learning from the latest results"); setTimeout(reload, 4000); }}><Play size={15} /> Learn now</button>}>
       <div className="grid gap-6 lg:grid-cols-3">
         <Card title="Prediction model" className="lg:col-span-1">

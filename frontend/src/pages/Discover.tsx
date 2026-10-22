@@ -23,7 +23,7 @@ export default function Discover() {
   return (
     <Page title="Viral finder" subtitle="Videos outperforming their channel right now. Covered = a rights record lets you clip it; leads need permission first.">
       <Card title="Videos from your covered sources" pad={false}>
-        {!data?.covered.length ? <div className="p-5 text-sm text-dim">Add channels or clipping campaigns under Rights and ClipForge watches them for breakout videos.</div> : (
+        {!data?.covered.length ? <div className="p-5 text-sm text-dim">Add channels or clipping campaigns under Rights and AutoShorts watches them for breakout videos.</div> : (
           <ul className="divide-y divide-line">{data.covered.map((v) => (
             <li key={v.id} className="flex items-center gap-3 px-5 py-3">
               {v.thumbnail && <img src={v.thumbnail} className="h-12 w-20 rounded-md object-cover" alt="" />}
@@ -39,7 +39,7 @@ export default function Discover() {
           <button className="btn-outline shrink-0" onClick={scout}><Search size={15} /> Scan</button>
         </div>
         <div className="mt-5">
-          {!data?.leads.length ? <Empty icon={<Radar size={28} />} title="No leads yet">Scan a few niches. ClipForge ranks recent long videos by how fast they're gaining views.</Empty> : (
+          {!data?.leads.length ? <Empty icon={<Radar size={28} />} title="No leads yet">Scan a few niches. AutoShorts ranks recent long videos by how fast they're gaining views.</Empty> : (
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{data.leads.map((d) => (
               <div key={d.id} className="rounded-xl border border-line p-3">
                 <a href={d.url} target="_blank" rel="noreferrer">{d.thumbnail && <img src={d.thumbnail} className="aspect-video w-full rounded-lg object-cover" alt="" />}</a>

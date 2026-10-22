@@ -1,6 +1,6 @@
-# ClipForge – common commands
+# AutoShorts – common commands
 PY := backend/.venv/bin/python
-CF := backend/.venv/bin/clipforge
+CF := backend/.venv/bin/autoshorts
 
 .PHONY: setup up dev web mac demo test clean
 
@@ -17,12 +17,12 @@ dev:              ## backend on :3000 and hot-reloading dashboard on :5173
 web:              ## build the dashboard
 	cd frontend && npm run build
 
-mac:              ## build dist/ClipForge.app and dist/ClipForge.dmg
+mac:              ## build dist/AutoShorts.app and dist/AutoShorts.dmg
 	./macos/build.sh
 
 demo:             ## make a rights-free demo episode and turn it into clips
-	$(PY) backend/scripts/make_demo_episode.py ~/Movies/clipforge_demo.mp4
-	$(CF) add-file ~/Movies/clipforge_demo.mp4 --credit "Demo Podcast"
+	$(PY) backend/scripts/make_demo_episode.py ~/Movies/autoshorts_demo.mp4
+	$(CF) add-file ~/Movies/autoshorts_demo.mp4 --credit "Demo Podcast"
 
 test:
 	cd backend && .venv/bin/pytest -q

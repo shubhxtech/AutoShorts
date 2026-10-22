@@ -8,7 +8,7 @@ from .config import paths
 _configured = False
 
 
-def setup_logging(name: str = "clipforge", level: int = logging.INFO) -> None:
+def setup_logging(name: str = "autoshorts", level: int = logging.INFO) -> None:
     global _configured
     if _configured:
         return
@@ -27,4 +27,4 @@ def setup_logging(name: str = "clipforge", level: int = logging.INFO) -> None:
 
 
 def get(name: str) -> logging.Logger:
-    return logging.getLogger(f"clipforge.{name}")
+    return logging.getLogger(f"autoshorts.{name}")

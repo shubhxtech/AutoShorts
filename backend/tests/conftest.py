@@ -1,9 +1,9 @@
 import os
 import tempfile
 
-os.environ["CLIPFORGE_HOME"] = tempfile.mkdtemp(prefix="cf_test_")
+os.environ["AUTOSHORTS_HOME"] = tempfile.mkdtemp(prefix="cf_test_")
 
-from clipforge.db import init_db  # noqa: E402
+from autoshorts.db import init_db  # noqa: E402
 
 init_db()
 

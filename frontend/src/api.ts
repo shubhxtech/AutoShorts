@@ -1,4 +1,4 @@
-// Thin client for the ClipForge backend.
+// Thin client for the AutoShorts backend.
 
 export class ApiError extends Error {
   status: number;

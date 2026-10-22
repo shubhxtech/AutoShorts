@@ -54,7 +54,7 @@ export default function Today({ summary }: { summary: Summary | null }) {
       <Card title="Activity" className="mt-6" pad={false}
         actions={<button className="btn-ghost !py-1 text-xs" onClick={async () => { await api.post("/events/read"); reloadEvents(); }}>Mark all read</button>}>
         {!events?.length ? (
-          <div className="p-5"><Empty title="Nothing yet">Paste a video link above. ClipForge transcribes it, finds the most viral moments, edits each one into vertical clips, and checks quality before anything reaches you.</Empty></div>
+          <div className="p-5"><Empty title="Nothing yet">Paste a video link above. AutoShorts transcribes it, finds the most viral moments, edits each one into vertical clips, and checks quality before anything reaches you.</Empty></div>
         ) : (
           <ul className="divide-y divide-line">
             {events.map((e) => (
