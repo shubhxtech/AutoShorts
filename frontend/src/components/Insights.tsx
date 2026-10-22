@@ -1,6 +1,6 @@
 import { fmt } from "../api";
 import { useApi } from "../hooks";
-import { BarList, Columns, Funnel, TrendChart } from "./charts";
+import { BarList, Columns, PipelineSteps, TrendChart } from "./charts";
 import { Card } from "./ui";
 
 type I = {
@@ -14,19 +14,24 @@ type I = {
 export function Insights({ days = 14 }: { days?: number }) {
   const { data } = useApi<I>(`/insights?days=${days}`, 30000);
   if (!data || !data.funnel[0].value) return null;
+  const passed = data.per_day.reduce((n, d) => n + d.passed, 0);
   return (
-    <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-      <Card title={`Pipeline (last ${days} days)`} className="lg:col-span-2 xl:col-span-2"><Funnel steps={data.funnel} />
-        <p className="mt-3 text-xs text-mute">Right column: share that made it past the previous step. {data.pass_rate}% of rendered clips pass quality checks · average length {data.avg_duration}s.</p></Card>
-      <Card title="Predicted clip scores"><Columns data={data.score_bins} format={(v) => `${v} clips`} />
-        <p className="mt-2 text-xs text-mute">How strong the local LLM and model think each clip is (0–10).</p></Card>
-      <Card title="Why clips fail quality checks"><BarList data={data.qc_failures.map((q) => ({ label: fmt.label(q.label), value: q.value }))} empty="Nothing failing" /></Card>
-      <Card title="Clips that passed, per day">{data.per_day.length >= 3
-        ? <TrendChart data={data.per_day.map((d) => ({ x: d.day, y: d.passed }))} height={150} />
-        : <Columns data={data.per_day.map((d) => ({ label: d.day.slice(5), value: d.passed }))} format={(v) => `${v} clips`} />}</Card>
-      <Card title="What the clips are"><BarList data={data.structures.map((s) => ({ label: fmt.label(s.label), value: s.value }))} />
-        <div className="mt-4 border-t border-line pt-3"><div className="label">Edit styles that passed</div>
-          <BarList data={data.edit_mix.map((s) => ({ label: fmt.label(s.label), value: s.value }))} /></div></Card>
+    <div className="space-y-6">
+      <Card title={`Pipeline · last ${days} days`}>
+        <PipelineSteps steps={data.funnel.map((f) => ({ label: f.label, value: f.value }))} />
+        <p className="mt-4 text-xs text-mute">Arrows show the share that made it past the previous step. {data.pass_rate}% of rendered clips pass quality checks · average length {data.avg_duration}s.</p>
+      </Card>
+      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        <Card title="Predicted clip scores"><Columns data={data.score_bins} format={(v) => `${v} clips`} />
+          <p className="mt-2 text-xs text-mute">How strong the local model thinks each clip is, 0 to 10.</p></Card>
+        <Card title="Why clips fail checks"><BarList data={data.qc_failures.map((q) => ({ label: fmt.label(q.label), value: q.value }))} empty="Nothing failing" /></Card>
+        <Card title="Clips that passed, per day">{data.per_day.length >= 3
+          ? <TrendChart data={data.per_day.map((d) => ({ x: d.day, y: d.passed }))} height={150} />
+          : <div className="py-4"><div className="tabular text-3xl font-semibold">{passed}</div>
+              <p className="mt-1 text-sm text-dim">passed so far. A daily trend appears after three days of activity.</p></div>}</Card>
+        <Card title="What the clips are"><BarList data={data.structures.map((s) => ({ label: fmt.label(s.label), value: s.value }))} /></Card>
+        <Card title="Edit styles that passed"><BarList data={data.edit_mix.map((s) => ({ label: fmt.label(s.label), value: s.value }))} /></Card>
+      </div>
     </div>
   );
 }

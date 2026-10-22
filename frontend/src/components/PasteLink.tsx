@@ -27,10 +27,12 @@ export function PasteLink({ onQueued }: { onQueued?: () => void }) {
   const [pages, setPages] = useState<number[]>([]);
   const [busy, setBusy] = useState(false);
   const [more, setMore] = useState(false);
+  const [nudge, setNudge] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!url.trim()) return;
+    if (!attest) { setNudge(true); return; }   // ask, rather than a mysteriously disabled button
     setBusy(true);
     try {
       await api.post("/quick", {
@@ -57,8 +59,7 @@ export function PasteLink({ onQueued }: { onQueued?: () => void }) {
           <input className="input !rounded-2xl !py-3.5 !pl-11 text-base" placeholder="Paste a YouTube (or any) video link, or a file path…"
             value={url} onChange={(e) => setUrl(e.target.value)} autoFocus />
         </div>
-        <button className="btn-primary !rounded-2xl !px-6 !py-3.5 text-base" disabled={busy || !url.trim() || !attest}
-          title={!attest ? "Tick “I own this video or have permission” first" : undefined}>
+        <button className="btn-primary !rounded-2xl !px-6 !py-3.5 text-base" disabled={busy || !url.trim()}>
           {busy ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />} Make clips
         </button>
       </div>
@@ -67,11 +68,11 @@ export function PasteLink({ onQueued }: { onQueued?: () => void }) {
           {RIGHTS.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
         </select>
         <label className="flex cursor-pointer items-center gap-2">
-          <input type="checkbox" checked={attest} onChange={(e) => setAttest(e.target.checked)} className="h-4 w-4 accent-[var(--brand)]" />
-          <span className={url.trim() && !attest ? "text-brand" : ""}>I own this video or have permission to clip it</span>
+          <input type="checkbox" checked={attest} onChange={(e) => { setAttest(e.target.checked); setNudge(false); }} className="h-4 w-4 accent-[var(--brand)]" />
+          <span className={nudge ? "font-medium text-brand" : ""}>I own this video or have permission to clip it</span>
         </label>
-        <Toggle checked={auto} onChange={setAuto} label={<span>Hands-off: post the best {top} clips automatically</span>} />
-        <button type="button" className="btn-ghost !px-2 !py-1 text-xs" onClick={() => setMore(!more)}>{more ? "Fewer options" : "More options"}</button>
+        {nudge && <span className="text-xs text-brand">Confirm this to start.</span>}
+        <button type="button" className="btn-ghost ml-auto !px-2 !py-1 text-xs" onClick={() => setMore(!more)}>{more ? "Fewer options" : "More options"}</button>
       </div>
       {(more || needsProof) && (
         <div className="grid gap-3 border-t border-line px-5 py-4 md:grid-cols-4">
@@ -85,6 +86,7 @@ export function PasteLink({ onQueued }: { onQueued?: () => void }) {
             <input className="input" value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="business, fitness…" /></label>
           {more && (
             <>
+              <div className="flex items-end md:col-span-2"><Toggle checked={auto} onChange={setAuto} label={<span>Hands-off: post the best {top} clips automatically</span>} /></div>
               <label><span className="label">Clips to auto-post</span>
                 <input type="number" min={1} max={10} className="input" value={top} onChange={(e) => setTop(Number(e.target.value))} /></label>
               <div className="md:col-span-2">

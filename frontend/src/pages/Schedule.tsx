@@ -1,6 +1,7 @@
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { CalendarClock, ExternalLink, Send, X } from "lucide-react";
-import { api, fmt, type Post } from "../api";
+import { api, fmt, type Account, type Post } from "../api";
 import { useApi } from "../hooks";
 import { Empty, Page, Platform, StatusPill, useToast } from "../components/ui";
 
@@ -8,6 +9,7 @@ export default function Schedule() {
   const toast = useToast();
   const { data, reload } = useApi<Post[]>("/posts?days=14", 10000);
   const posts = data || [];
+  const { data: accounts } = useApi<Account[]>("/accounts");
 
   const days = useMemo(() => {
     const by: Record<string, Post[]> = {};
@@ -31,7 +33,13 @@ export default function Schedule() {
   return (
     <Page title="Schedule" subtitle="Approved clips go out at each page's best times, spaced apart, with platform-specific titles, captions and credit.">
       {!posts.length ? (
-        <Empty icon={<CalendarClock size={28} />} title="Nothing scheduled">Approve clips in Review and they'll be placed into your pages' time slots.</Empty>
+        <Empty icon={<CalendarClock size={28} />} title="Nothing scheduled">
+          {accounts && !accounts.length
+            ? <>Connect a YouTube or Instagram page first, then approved clips are placed into its best time slots.
+                <div className="mt-4"><Link to="/pages" className="btn-primary">Connect a page</Link></div></>
+            : <>Approve clips in Review and they're placed into your pages' best time slots.
+                <div className="mt-4"><Link to="/review" className="btn-ghost">Open Review</Link></div></>}
+        </Empty>
       ) : (
         <div className="space-y-6">
           {days.map(([day, list]) => (

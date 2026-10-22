@@ -127,6 +127,34 @@ export function Funnel({ steps }: { steps: { label: string; value: number; note?
   );
 }
 
+/** A pipeline as one line of steps: big number, label, and the share that made it from the step before.
+ *  Reads at a glance and doesn't need bars (the numbers are the point). */
+export function PipelineSteps({ steps }: { steps: { label: string; value: number; note?: string }[] }) {
+  return (
+    <ol className="grid grid-cols-2 gap-y-4 sm:grid-cols-3 lg:flex lg:items-stretch" role="list">
+      {steps.map((s, i) => {
+        const prev = i ? steps[i - 1].value : 0;
+        const conv = i && prev ? Math.min(100, Math.round((s.value / prev) * 100)) : null;
+        return (
+          <li key={s.label} className="flex min-w-0 flex-1 items-center">
+            {i > 0 && (
+              <div className="mx-2 hidden shrink-0 flex-col items-center text-[10px] text-mute lg:flex" aria-hidden>
+                <span className="tabular">{s.note && !conv ? "" : conv !== null ? `${conv}%` : ""}</span>
+                <span className="text-base leading-none">→</span>
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="tabular text-2xl font-semibold leading-tight">{s.value.toLocaleString()}</div>
+              <div className="truncate text-xs text-dim">{s.label}</div>
+              {s.note && <div className="truncate text-[11px] text-mute">{s.note}</div>}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 /** Vertical columns (distribution). */
 export function Columns({ data, height = 120, format = (v) => String(v) }: { data: { label: string; value: number }[]; height?: number; format?: (v: number) => string }) {
   const [hover, setHover] = useState<number | null>(null);
@@ -146,7 +174,11 @@ export function Columns({ data, height = 120, format = (v) => String(v) }: { dat
         ))}
       </div>
       <div className="mt-1 flex gap-1.5 border-t pt-1 text-[10px] text-mute" style={{ borderColor: "var(--axis)" }}>
-        {data.map((d, i) => <span key={d.label} className="flex-1 text-center">{i % 2 === 0 ? d.label.split("–")[0] : ""}</span>)}
+        {data.map((d, i) => (
+          <span key={d.label} className="flex-1 text-center">
+            {i === 0 || i === data.length - 1 || i === Math.floor(data.length / 2) ? d.label : ""}
+          </span>
+        ))}
       </div>
     </div>
   );
