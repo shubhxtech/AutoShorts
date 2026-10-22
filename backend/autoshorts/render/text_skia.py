@@ -43,12 +43,15 @@ FALLBACK_FAMILIES = ["Noto Sans Devanagari", "Nirmala UI", "Kohinoor Devanagari"
                      "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", "DejaVu Sans"]
 
 
+@lru_cache(maxsize=1)
 def available() -> bool:
     try:
         import skia  # noqa: F401
         from skia import textlayout  # noqa: F401
         return True
-    except ImportError:
+    except ImportError as exc:
+        # On Linux this is usually missing system libraries: sudo apt install libegl1 libgl1 libfontconfig1
+        log.warning("Skia text rendering unavailable (%s); Hindi captions and emoji may render incorrectly", exc)
         return False
 
 

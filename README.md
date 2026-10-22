@@ -109,7 +109,7 @@ cd AutoShorts
 make setup && make up
 ```
 
-On Linux, also install [Ollama](https://ollama.com) and run `ollama pull qwen3:8b`.
+On Linux, also install [Ollama](https://ollama.com) and run `ollama pull qwen3:8b`, plus the libraries text rendering needs: `sudo apt install ffmpeg libegl1 libgl1 libfontconfig1`.
 
 **Windows** (PowerShell, in the repository folder)
 
