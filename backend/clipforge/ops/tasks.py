@@ -100,7 +100,10 @@ def health() -> dict:
 
     try:
         ffmpeg_bin()
-        add("ffmpeg", True, ", ".join(e for e in ("h264_videotoolbox", "libx264") if e in encoders()))
+        from ..media import HW_ENCODERS, encoder_works
+
+        hw = [e.split("_")[1] for e in HW_ENCODERS if encoder_works(e)]
+        add("ffmpeg", True, ("hardware encoding: " + ", ".join(hw)) if hw else "software encoding (libx264)")
     except RuntimeError as exc:
         add("ffmpeg", False, str(exc))
     hb = settings.get("worker_heartbeat")
@@ -112,14 +115,21 @@ def health() -> dict:
             pass
     add("worker", alive, "running" if alive else "not running: start with `clipforge up`")
     try:
-        import mlx_whisper  # noqa: F401
-        add("transcription", True, settings.get("whisper_model"))
-    except ImportError:
-        add("transcription", False, "mlx-whisper not installed")
+        from ..understand.transcribe import _engine
+
+        eng = _engine()
+        add("transcription", True, f"{settings.get('whisper_model').split('/')[-1]} ({'MLX' if 'mlx' in eng.__name__ else 'faster-whisper'})")
+    except RuntimeError as exc:
+        add("transcription", False, str(exc))
     from .. import llm
 
-    add("local LLM", llm.available(), settings.get("llm_model") if llm.available() else "disabled or mlx-lm missing",
-        level="warning")
+    if llm.backend() == "server":
+        ok = llm.available()
+        add("local LLM", ok, f"{settings.get('llm_server_model')} via {settings.get('llm_server_url')}" if ok else
+            "no local LLM server running: install Ollama and run `ollama pull qwen3:8b`", level="warning")
+    else:
+        add("local LLM", llm.available(), settings.get("llm_model") if llm.available() else "disabled or mlx-lm missing",
+            level="warning")
     du = disk_usage()
     add("disk", du["disk_free_gb"] > 10, f"{du['disk_free_gb']} GB free", level="warning")
     with session() as s:

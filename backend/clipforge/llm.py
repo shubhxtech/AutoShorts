@@ -1,4 +1,9 @@
-"""On-device LLM (MLX). No API keys, nothing leaves the Mac.
+"""On-device LLM. No API keys, nothing leaves the machine.
+
+Backends:
+  mlx     Apple Silicon (mlx-lm), loaded in-process
+  server  any local OpenAI-compatible server: Ollama (default http://localhost:11434/v1), LM Studio,
+          llama.cpp server, vLLM. This is how Windows and Linux run the LLM on NVIDIA, AMD or CPU.
 
 One model is kept in memory at a time and dropped after a few idle minutes
 (or explicitly, before Whisper or rendering needs the RAM). Every call asks for
@@ -31,14 +36,58 @@ class LLMUnavailable(Exception):
     pass
 
 
+def backend() -> str:
+    b = (settings.get("llm_backend") or "auto").lower()
+    if b in ("mlx", "server"):
+        return b
+    try:
+        import mlx_lm  # noqa: F401
+        return "mlx"
+    except ImportError:
+        return "server"
+
+
 def available() -> bool:
     if not settings.get("llm_enabled"):
         return False
+    if backend() == "server":
+        return _server_up()
     try:
         import mlx_lm  # noqa: F401
     except ImportError:
         return False
     return True
+
+
+_server_check = {"at": 0.0, "ok": False}
+
+
+def _server_up() -> bool:
+    import httpx
+
+    if time.time() - _server_check["at"] < 20:
+        return _server_check["ok"]
+    try:
+        r = httpx.get(settings.get("llm_server_url").rstrip("/") + "/models", timeout=3)
+        ok = r.status_code == 200
+    except Exception:  # noqa: BLE001
+        ok = False
+    _server_check.update(at=time.time(), ok=ok)
+    return ok
+
+
+def _server_complete(system: str, user: str, max_tokens: int, temperature: float, json_mode: bool) -> str:
+    import httpx
+
+    body = {"model": settings.get("llm_server_model"), "temperature": temperature, "top_p": 0.9,
+            "max_tokens": max_tokens, "stream": False,
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
+    if json_mode:
+        body["response_format"] = {"type": "json_object"}
+    r = httpx.post(settings.get("llm_server_url").rstrip("/") + "/chat/completions", json=body, timeout=600)
+    if r.status_code >= 400:
+        raise LLMUnavailable(f"LLM server error {r.status_code}: {r.text[:300]}")
+    return r.json()["choices"][0]["message"]["content"] or ""
 
 
 def _load(name: str):
@@ -58,6 +107,9 @@ def _load(name: str):
 
 
 def unload() -> None:
+    if backend() == "server":
+        _server_unload()
+        return
     with _lock:
         if _state["model"] is None:
             return
@@ -70,6 +122,20 @@ def unload() -> None:
             mx.clear_cache()
         except Exception:  # noqa: BLE001
             pass
+
+
+def _server_unload() -> None:
+    """Free the GPU for Whisper and image models: Ollama drops a model on keep_alive=0."""
+    import httpx
+
+    url = settings.get("llm_server_url").rstrip("/")
+    if ":11434" not in url:
+        return
+    try:
+        httpx.post(url.rsplit("/v1", 1)[0] + "/api/generate",
+                   json={"model": settings.get("llm_server_model"), "keep_alive": 0}, timeout=10)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 _reaper_started = False
@@ -100,9 +166,12 @@ def _prompt(tokenizer, system: str, user: str) -> str:
 
 
 def complete(system: str, user: str, *, max_tokens: int = 1500, temperature: float = 0.4,
-             model: str | None = None) -> str:
+             model: str | None = None, json_mode: bool = False) -> str:
     if not available():
-        raise LLMUnavailable("local LLM is disabled or mlx-lm is not installed")
+        raise LLMUnavailable("local LLM is disabled, or no backend is running (install Ollama, or mlx-lm on Apple Silicon)")
+    if backend() == "server":
+        with _lock:
+            return _strip_thinking(_server_complete(system, user, max_tokens, temperature, json_mode))
     name = model or settings.get("llm_model")
     from mlx_lm import generate
     from mlx_lm.sample_utils import make_sampler
@@ -166,7 +235,7 @@ def structured(schema: type[T], system: str, user: str, *, max_tokens: int = 200
     last_err: Exception | None = None
     for attempt in range(attempts):
         raw = complete(sys_prompt, prompt, max_tokens=max_tokens, temperature=temperature if attempt == 0 else 0.1,
-                       model=model)
+                       model=model, json_mode=True)
         try:
             return schema.model_validate(extract_json(raw))
         except (ValueError, ValidationError) as exc:
