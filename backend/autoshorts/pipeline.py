@@ -430,3 +430,10 @@ def rerender_clip(ctx: JobContext, p: dict) -> None:
     clip.status = "rendering"
     save(clip)
     render_one(clip, moment, video, src, spec, ctx)
+    # Once the video's last re-render finishes, mark it ready again (no notifications or auto-posting:
+    # those already happened when it was first made).
+    with session() as s:
+        clips = s.exec(select(Clip).where(Clip.video_id == video.id)).all()
+    if not any(c.status == "rendering" for c in clips):
+        passed = sum(1 for c in clips if c.status == "review")
+        _set(video.id, status="ready", progress=1.0, stage_message=f"{len(clips)} clips, {passed} passed checks")
