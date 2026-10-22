@@ -67,8 +67,9 @@ def run(path: str | Path, stats: dict, moment: Moment, src: Source, words: list[
     opening = (stats.get("spec") or {}).get("opening", "straight")
     # A cold open / narrated intro replaces the weak first line with the strongest one.
     strong_open = opening in ("cold_open", "narrated") and len(stats.get("edl") or []) > 1
-    hook_ok = bool(stats.get("hook_until")) and first is not None and first <= 1.2 and (
-        hook_score >= 5 or strong_open or not moment.scores)
+    # The on-screen hook is optional (it can be switched off); what matters is that speech starts at once
+    # and the opening line is strong.
+    hook_ok = first is not None and first <= 1.2 and (hook_score >= 5 or strong_open or not moment.scores)
     results.append(_check("hook_in_first_3s", hook_ok,
                           f"speech at {first if first is None else round(first, 2)}s, hook overlay "
                           f"{'on' if stats.get('hook_until') else 'off'}, hook score {hook_score:.0f}/10"))

@@ -165,8 +165,7 @@ def transcribe(wav_path: str | Path, out_path: str | Path, language: str | None 
                 s, e = float(w["start"]) + a, float(w["end"]) + a
                 if words and s < words[-1]["s"]:
                     continue  # overlap at chunk boundary
-                words.append({"w": text, "s": round(s, 3), "e": round(max(e, s + 0.04), 3),
-                              "p": round(float(w.get("probability", 1.0)), 3)})
+                add_word(words, text, s, e, float(w.get("probability", 1.0)))
     _drop_repetition_loops(words)
     data = {"language": detected or "en", "duration": len(audio) / sr, "words": words,
             "sentences": build_sentences(words)}
@@ -175,6 +174,15 @@ def transcribe(wav_path: str | Path, out_path: str | Path, language: str | None 
     if progress:
         progress(1.0, f"transcribed {len(words)} words")
     return data
+
+
+def add_word(words: list[dict], text: str, s: float, e: float, p: float = 1.0) -> None:
+    """Append a word; Whisper splits hyphenated words ("deep" + "-sea"), so those are joined back."""
+    if words and text.startswith("-") and len(text) > 1 and s - words[-1]["e"] < 0.15:
+        words[-1]["w"] += text
+        words[-1]["e"] = round(max(e, words[-1]["e"]), 3)
+        return
+    words.append({"w": text, "s": round(s, 3), "e": round(max(e, s + 0.04), 3), "p": round(p, 3)})
 
 
 def _drop_repetition_loops(words: list[dict], window: int = 6, repeats: int = 3) -> None:

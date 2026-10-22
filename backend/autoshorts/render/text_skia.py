@@ -22,6 +22,7 @@ log = logs.get("text")
 # OFL fonts, fetched on first use. Static weights so the layout engine picks the right one.
 FONT_FILES = {
     "Montserrat-SemiBold.ttf": "https://github.com/JulietaUla/Montserrat/raw/master/fonts/ttf/Montserrat-SemiBold.ttf",
+    "Montserrat-Bold.ttf": "https://github.com/JulietaUla/Montserrat/raw/master/fonts/ttf/Montserrat-Bold.ttf",
     "Montserrat-ExtraBold.ttf": "https://github.com/JulietaUla/Montserrat/raw/master/fonts/ttf/Montserrat-ExtraBold.ttf",
     "Montserrat-Black.ttf": "https://github.com/JulietaUla/Montserrat/raw/master/fonts/ttf/Montserrat-Black.ttf",
     "Anton-Regular.ttf": "https://github.com/google/fonts/raw/main/ofl/anton/Anton-Regular.ttf",
@@ -33,6 +34,7 @@ FONT_FILES = {
 FONT_MAP = {
     "AvenirNext-Heavy": (["Avenir Next", "Montserrat", "Segoe UI Black", "Arial Black"], 800, False),
     "AvenirNext-DemiBold": (["Avenir Next", "Montserrat", "Segoe UI Semibold", "Arial"], 600, False),
+    "AvenirNext-Bold": (["Avenir Next", "Montserrat", "Segoe UI", "Arial"], 700, False),
     "Arial-Black": (["Arial Black", "Montserrat", "Segoe UI Black"], 900, False),
     "Futura-CondensedExtraBold": (["Futura", "Anton", "Impact", "Arial Narrow"], 800, True),
     "Georgia-Bold": (["Georgia", "Noto Serif", "DejaVu Serif"], 700, False),

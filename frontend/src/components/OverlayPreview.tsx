@@ -5,12 +5,12 @@ import { RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from
 
 export type OverlaySpec = {
   duration: number; fps: number; brand: string; caption_style: string; caption_font: string; emphasis: number[];
-  caption_y_track: [number, number, string][]; hook: string; hook_seconds: number; headline: string; credit: string;
+  caption_y_track: [number, number, string][]; hook: string; hook_seconds: number; hook_style?: string; headline: string; credit: string;
   credit_link: string; cta: string; cta_keyword: string; progress_bar: boolean; end_card: boolean;
   emoji: [number, string][]; panels: [number, number][]; key_words: string[];
 };
 export type OverlayEdits = Partial<{
-  caption_style: string; caption_y: number | null; caption_scale: number; hook: string; headline: string; cta: string;
+  caption_style: string; caption_y: number | null; caption_scale: number; hook: string; hook_style: string; headline: string; cta: string;
   progress_bar: boolean; emoji: boolean; end_card: boolean; brand: string; caption_edits: Record<string, string>; hide_captions: boolean;
 }>;
 type Word = [number, string, number, number, number];
@@ -136,8 +136,9 @@ export function OverlayPreview({ spec, words, edits, video, onDragCaption }: {
     e.preventDefault();
   }
 
+  const hookStyle = s.hook_style || spec.hook_style || "native";
   const hookOn = !!s.hook && t < (spec.hook_seconds || 0);
-  const hookOut = 1 - easeOut((t - ((spec.hook_seconds || 0) - 0.25)) / 0.25);
+  const hookOut = 1 - easeOut((t - ((spec.hook_seconds || 0) - 0.2)) / 0.2);
   const kw = keyWord(s.hook || "", new Set((spec.key_words || []).map((x) => x.toLowerCase())));
 
   return (
@@ -146,19 +147,33 @@ export function OverlayPreview({ spec, words, edits, video, onDragCaption }: {
         <div className="absolute left-0 top-0 h-[10px] w-full bg-black/50"><div className="h-full" style={{ width: `${Math.min(100, (t / d) * 100)}%`, background: brand }} /></div>
       )}
 
-      {hookOn && (
-        <div className="absolute inset-x-0 flex flex-col items-center" style={{ top: Math.max(150, 1920 * (split ? 0.125 : 0.21) - 70), opacity: Math.max(0, hookOut), transform: `scale(${0.94 + 0.06 * backOut(t / 0.18)})`, transformOrigin: "50% 0" }}>
-          <div className="max-w-[980px] rounded-[28px] bg-white px-10 py-6 text-center leading-[1.08] text-[#0c0c0c]" style={{ font: `800 ${hookSize(s.hook || "")}px "Avenir Next", system-ui` }}>
-            {(s.hook || "").replace(/\.$/, "").split(" ").map((w, i) => (
-              <span key={i} className={w.replace(/[,.!?:;"']/g, "").toLowerCase() === kw ? "rounded-[14px] px-2" : ""} style={w.replace(/[,.!?:;"']/g, "").toLowerCase() === kw ? { background: brand } : undefined}>{w} </span>
-            ))}
-          </div>
+      {hookOn && hookStyle !== "none" && (
+        // Mirrors overlays.py _make_hook: top-anchored at HOOK_TOP, readable on frame 0, balanced lines.
+        <div className="absolute inset-x-0 flex flex-col items-center" style={{ top: split ? 178 : 204, opacity: Math.max(0, hookOut) }}>
+          {hookStyle === "bold" ? (
+            <div className="text-center text-white" style={{ font: `800 ${hookSize(s.hook || "")}px "Avenir Next", system-ui`, lineHeight: 1.02, ...strokeCss(8 / sizeK), ...shadowCss(12) }}>
+              {balancedLines(s.hook || "", `800 ${hookSize(s.hook || "")}px "Avenir Next"`, 920, 2).map((line, li) => (
+                <div key={li}>{line.split(" ").map((w, i) => (
+                  <span key={i} style={w.replace(/[,.!?:;"']/g, "").toLowerCase() === kw ? { color: brand } : undefined}>{w}{" "}</span>
+                ))}</div>
+              ))}
+            </div>
+          ) : (
+            balancedLines(s.hook || "", `700 ${nativeHookSize(s.hook || "")}px "Avenir Next"`, 880, 3).map((line, li) => (
+              <div key={li} className="rounded-[18px] text-center" style={{
+                font: `700 ${nativeHookSize(s.hook || "")}px "Avenir Next", system-ui`, lineHeight: 1.18, padding: "11px 26px",
+                background: hookStyle === "dark" ? "rgba(0,0,0,0.7)" : "#fff", color: hookStyle === "dark" ? "#fff" : "#0e0e0e" }}>{line}</div>
+            ))
+          )}
           {s.credit && <div className="mt-3 text-white" style={{ font: `600 34px "Avenir Next", system-ui`, textShadow: "0 2px 8px rgba(0,0,0,.8)" }}>🎙 {s.credit}</div>}
         </div>
       )}
-      {!hookOn && s.headline && !inPanel && t < d - (s.end_card ? 1.9 : 0) && (
-        <div className="absolute inset-x-0 top-[160px] flex justify-center" style={{ opacity: easeOut((t - (spec.hook_seconds || 0)) / 0.3) }}>
-          <div className="max-w-[900px] rounded-[20px] bg-black/65 px-7 py-3 text-center text-white" style={{ font: `800 46px "Avenir Next", system-ui` }}>{s.headline}</div>
+      {(!hookOn || hookStyle === "none") && s.headline && !inPanel && t < d - (s.end_card ? 1.9 : 0) && (
+        <div className="absolute inset-x-0 top-[174px] flex flex-col items-center" style={{ opacity: hookOn || hookStyle === "none" ? 1 : easeOut((t - (spec.hook_seconds || 0)) / 0.3) }}>
+          {balancedLines(s.headline, `700 40px "Avenir Next"`, 820, 2).map((line, li) => (
+            <div key={li} className="rounded-[13px] text-center" style={{ font: `700 40px "Avenir Next", system-ui`, lineHeight: 1.18, padding: "7px 18px",
+              background: hookStyle === "native" ? "rgba(255,255,255,0.94)" : "rgba(0,0,0,0.67)", color: hookStyle === "native" ? "#0e0e0e" : "#fff" }}>{line}</div>
+          ))}
         </div>
       )}
 
@@ -218,4 +233,42 @@ export function OverlayPreview({ spec, words, edits, video, onDragCaption }: {
 function hookSize(text: string) {
   const n = text.trim().replace(/\.$/, "").length;
   return n <= 26 ? 84 : n <= 40 ? 76 : n <= 56 ? 66 : 58;
+}
+
+function nativeHookSize(text: string) {
+  const n = text.trim().replace(/\.$/, "").length;
+  return n <= 30 ? 72 : n <= 48 ? 64 : 56;
+}
+
+let measureCtx: CanvasRenderingContext2D | null = null;
+function textWidth(text: string, font: string) {
+  measureCtx ||= document.createElement("canvas").getContext("2d");
+  if (!measureCtx) return text.length * 30;
+  measureCtx.font = font;
+  return measureCtx.measureText(text).width;
+}
+
+/** Mirrors overlays.py balanced_lines: fewest lines that fit, widths as even as possible. */
+export function balancedLines(text: string, font: string, maxW: number, maxLines = 3): string[] {
+  const words = text.trim().replace(/\.$/, "").split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const wOf = (a: number, b: number) => textWidth(words.slice(a, b).join(" "), font);
+  const n = words.length;
+  if (n === 1 || wOf(0, n) <= maxW) return [words.join(" ")];
+  let best: { score: number; lines: string[] } | null = null;
+  if (maxLines >= 2) for (let k = 1; k < n; k++) {
+    const a = wOf(0, k), b = wOf(k, n);
+    if (a <= maxW && b <= maxW && (!best || Math.max(a, b) < best.score)) best = { score: Math.max(a, b), lines: [words.slice(0, k).join(" "), words.slice(k).join(" ")] };
+  }
+  if (!best && maxLines >= 3) for (let a = 1; a < n - 1; a++) for (let b = a + 1; b < n; b++) {
+    const ws = [wOf(0, a), wOf(a, b), wOf(b, n)];
+    if (ws.every((x) => x <= maxW) && (!best || Math.max(...ws) < best.score))
+      best = { score: Math.max(...ws), lines: [words.slice(0, a).join(" "), words.slice(a, b).join(" "), words.slice(b).join(" ")] };
+  }
+  if (best) return best.lines;
+  const out: string[] = [];                      // still too long: greedy
+  let cur = "";
+  for (const w of words) { const nx = cur ? `${cur} ${w}` : w; if (cur && textWidth(nx, font) > maxW) { out.push(cur); cur = w; } else cur = nx; }
+  if (cur) out.push(cur);
+  return out.slice(0, maxLines);
 }

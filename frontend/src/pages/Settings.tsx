@@ -91,6 +91,11 @@ export default function Settings() {
             <Field label="Edit style"><select className="input" value={s.edit_preset} onChange={str("edit_preset")}>
               {[["auto", "Auto (test styles, learn the best)"], ["clean", "Clean"], ["explainer", "Explainer (graphics on top)"], ["hype", "Hype"], ["minimal", "Minimal"]].map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
             <Field label="Brand colour"><input type="color" className="input !h-10 !p-1" value={s.brand_color} onChange={str("brand_color")} /></Field>
+            <Field label="Opening text (hook) style">
+              <select className="input" value={s.hook_style || "native"} onChange={str("hook_style")}>
+                <option value="native">Native (platform-style boxes)</option><option value="bold">Bold outline</option>
+                <option value="dark">Dark boxes</option><option value="none">Off</option>
+              </select></Field>
             <Field label="Hook on screen (s)"><input type="number" step="0.1" className="input" value={s.hook_seconds} onChange={num("hook_seconds")} /></Field>
             <Field label="Cut pauses longer than (s)"><input type="number" step="0.05" className="input" value={s.max_pause_s} onChange={num("max_pause_s")} /></Field>
             <Field label="Caption font (optional)" hint="PostScript name, e.g. Montserrat-ExtraBold"><input className="input" value={s.caption_font} onChange={str("caption_font")} /></Field>

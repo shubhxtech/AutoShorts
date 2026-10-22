@@ -49,7 +49,8 @@ DEFAULTS: dict[str, Any] = {
     "music_enabled": False,               # top podcast clips rarely use music; enable once you add licensed tracks
     "music_volume_db": -24,
     "edit_preset": "auto",                # auto (bandit picks per variant) | clean | hype | minimal
-    "hook_seconds": 2.6,
+    "hook_seconds": 3.0,                  # how long the opening text stays (research: readable in ~1 glance, 3-5 s)
+    "hook_style": "native",               # native | bold | dark | none (off)
     "brand_color": "#FFD400",
     "caption_font": "",                   # PostScript name or empty for style default
     "end_card": True,

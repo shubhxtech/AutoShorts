@@ -23,7 +23,7 @@ from .plan import CardEvent, EmojiPop
 log = logs.get("burn")
 
 # Overrides the dashboard can change without re-rendering the base.
-LIVE_KEYS = {"caption_style", "caption_y", "caption_scale", "hook", "headline", "cta", "progress_bar",
+LIVE_KEYS = {"caption_style", "caption_y", "caption_scale", "hook", "hook_style", "headline", "cta", "progress_bar",
              "emoji", "end_card", "brand", "caption_edits", "hide_captions"}
 
 
@@ -49,7 +49,7 @@ def build(spec: dict, words: list, overrides: dict | None = None) -> tuple[Capti
                     duration=float(s["duration"]), hook_seconds=float(s.get("hook_seconds") or 0),
                     progress_bar=bool(s.get("progress_bar")), end_card=bool(s.get("end_card")),
                     cards=panels, emoji=emoji, flashes=[], cta_keyword=s.get("cta_keyword") or "",
-                    key_words=set(s.get("key_words") or []))
+                    key_words=set(s.get("key_words") or []), hook_style=s.get("hook_style") or "native")
     return caps, over, s
 
 

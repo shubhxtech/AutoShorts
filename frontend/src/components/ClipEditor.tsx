@@ -151,7 +151,19 @@ export function ClipEditor({ clip, accounts, onChanged, onApprove, onReject, liv
 
       {tab === "text" && <>
       <div>
-        <span className="label">Hook (first 3 seconds)</span>
+        <span className="label flex items-center justify-between"><span>Hook (opening text)</span>
+          {live?.live && (
+            <span className="flex rounded-lg border border-line p-0.5 normal-case tracking-normal">
+              {([["native", "Native"], ["bold", "Bold"], ["dark", "Dark"], ["none", "Off"]] as const).map(([k, l]) => {
+                const cur = live.edits.hook_style ?? clip.overlay_spec?.hook_style ?? "native";
+                return (
+                  <button key={k} type="button" onClick={() => live.update({ hook_style: k })}
+                    className={`rounded-md px-2 py-0.5 text-[11px] ${cur === k ? "bg-hover text-ink" : "text-dim hover:text-ink"}`}>{l}</button>
+                );
+              })}
+            </span>
+          )}
+        </span>
         {live?.live ? (
           <input className="input" value={live.edits.hook ?? clip.hook_text} onChange={(e) => live.update({ hook: e.target.value })} />
         ) : (

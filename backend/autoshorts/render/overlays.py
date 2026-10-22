@@ -28,7 +28,7 @@ class Overlays:
     def __init__(self, *, hook: str, headline: str, credit: str, credit_link: str, cta: str, brand: str,
                  duration: float, hook_seconds: float, progress_bar: bool, end_card: bool,
                  cards: list[CardEvent], emoji: list[EmojiPop], flashes: list[float], layout_hint: str = "follow",
-                 cta_keyword: str = "", key_words: set[str] | None = None):
+                 cta_keyword: str = "", key_words: set[str] | None = None, hook_style: str = "native"):
         self.cta_keyword = cta_keyword.strip()
         self.key_words = {w.lower() for w in (key_words or set())}
         self.hook, self.headline, self.credit, self.link, self.cta = hook, headline, credit, credit_link, cta
@@ -40,8 +40,11 @@ class Overlays:
         font = T.resolve_font("AvenirNext-Heavy", "Arial-Black")
         self.font = font
         self._sprites: dict = {}
-        self._hook_sprite = self._make_hook(hook) if hook else None
-        self._head_sprite = self._make_headline(headline or hook) if (headline or hook) else None
+        self.hook_style = hook_style if hook_style in HOOK_STYLES else "native"
+        on = bool(hook and hook.strip()) and self.hook_style != "none"
+        self._hook_sprite = self._make_hook(hook) if on else None
+        # The headline is its own (optional) title; it no longer repeats the hook for the whole clip.
+        self._head_sprite = self._make_headline(headline) if headline and headline.strip() else None
         self._credit_sprite = self._make_small(f"🎙 {credit}") if credit else None
         self._end_sprites = self._make_end() if end_card else None
 
@@ -55,33 +58,49 @@ class Overlays:
         return [" ".join(words[i] for i in ln) for ln in idx][:max_lines]
 
     def _make_hook(self, text: str) -> np.ndarray:
+        """The opening text, in one of HOOK_STYLES (mirrored by the dashboard preview).
+
+        native: white rounded boxes hugging each line, like the platforms' own text (reads as creator-made)
+        dark:   the same shape in translucent black with white text (keeps the eye on the speaker)
+        bold:   big outlined white text, key word in the brand colour (hype / motivational)
+        """
         text = text.strip().rstrip(".")
-        # Big enough to sell the clip on frame 0; sized by length (mirrored in the dashboard preview).
-        style = T.TextStyle(font=self.font, size=hook_size(text), background=(255, 255, 255, 255), background_pad=(40, 24),
-                            background_radius=28, shadow=0, line_spacing=1.04)
-        lines = self._wrap_lines(text, style, 900)
-        while len(lines) > 2 and style.size > 48:
-            style.size -= 6
-            lines = self._wrap_lines(text, style, 900)
-        key = _key_word(text, self.key_words)
-        rows = []
-        for l in lines:
-            words = l.split(" ")
-            row = []
-            for j, w in enumerate(words):
-                sp = w + (" " if j < len(words) - 1 else "")
-                if key and w.strip(",.!?").lower() == key:
-                    row.append(T.Span(sp, (12, 12, 12, 255), 1.0, self.brand))
-                else:
-                    row.append(T.Span(sp, (12, 12, 12, 255)))
-            rows.append(row)
-        return T.render(rows, style)
+        if self.hook_style == "bold":
+            style = T.TextStyle(font=self.font, size=hook_size(text), stroke=8, shadow=12, line_spacing=1.02)
+            lines = balanced_lines(text, style, 920, 2)
+            while T.measure(max(lines, key=len), style) > 920 and style.size > 48:
+                style.size -= 6
+                lines = balanced_lines(text, style, 920, 2)
+            key = _key_word(text, self.key_words)
+            rows = []
+            for l in lines:
+                words = l.split(" ")
+                rows.append([T.Span(w + (" " if j < len(words) - 1 else ""),
+                                    self.brand if key and w.strip(",.!?").lower() == key else (255, 255, 255, 255))
+                             for j, w in enumerate(words)])
+            return T.render(rows, style)
+        dark = self.hook_style == "dark"
+        size = native_hook_size(text)
+        font = T.resolve_font("AvenirNext-Bold", self.font)
+        probe = T.TextStyle(font=font, size=size)
+        lines = balanced_lines(text, probe, 880, 3)
+        bg = (0, 0, 0, 178) if dark else (255, 255, 255, 255)
+        ink = (255, 255, 255, 255) if dark else (14, 14, 14, 255)
+        pills = [T.render([[T.Span(l, ink)]], T.TextStyle(font=font, size=size, background=bg, background_pad=(26, 11),
+                                                         background_radius=18)) for l in lines]
+        return _stack(pills, overlap=16)
 
     def _make_headline(self, text: str) -> np.ndarray:
-        style = T.TextStyle(font=self.font, size=46, background=(0, 0, 0, 170), background_pad=(26, 14),
-                            background_radius=20, line_spacing=1.0)
-        lines = self._wrap_lines(text, style, 860, 2)
-        return T.render([[T.Span(l, (255, 255, 255, 255))] for l in lines], style)
+        """A small persistent title, in the same family as the hook."""
+        dark = self.hook_style != "native"
+        font = T.resolve_font("AvenirNext-Bold", self.font)
+        probe = T.TextStyle(font=font, size=40)
+        lines = balanced_lines(text, probe, 820, 2)
+        bg = (0, 0, 0, 170) if dark else (255, 255, 255, 240)
+        ink = (255, 255, 255, 255) if dark else (14, 14, 14, 255)
+        pills = [T.render([[T.Span(l, ink)]], T.TextStyle(font=font, size=40, background=bg, background_pad=(18, 7),
+                                                         background_radius=13)) for l in lines]
+        return _stack(pills, overlap=10)
 
     def _make_small(self, text: str) -> np.ndarray:
         style = T.TextStyle(font=T.resolve_font("AvenirNext-DemiBold", self.font), size=34, shadow=6,
@@ -148,30 +167,28 @@ class Overlays:
         "text" = editable text drawn live in the preview and burned on approval; "all" = both."""
         split = abs(caption_y - 0.5) < 0.05
         card_y = 0.27 if split else 0.44
-        hook_y = 0.125 if split else 0.21
         d = self.duration
         if layer in ("all", "text"):
-            self._draw_text(frame, t, caption_y, hook_y, d)
+            self._draw_text(frame, t, caption_y, split, d)
         if layer in ("all", "base"):
             self._draw_base(frame, t, card_y)
 
-    def _draw_text(self, frame: np.ndarray, t: float, caption_y: float, hook_y: float, d: float) -> None:
+    def _draw_text(self, frame: np.ndarray, t: float, caption_y: float, split: bool, d: float) -> None:
         # Hook card: pops in, holds, then shrinks into the persistent headline.
         if self._hook_sprite is not None and t < self.hook_s:
-            # Frame 0 must already sell the clip: the hook is fully readable from the first frame.
-            k = _back_out(t / 0.18)
-            out = 1.0 - _ease_out((t - (self.hook_s - 0.25)) / 0.25)
-            spr = T.scale_sprite(self._hook_sprite, 0.94 + 0.06 * k)
+            # Fully readable on frame 0 (no pop-in), top-anchored so longer hooks grow down, not onto the face.
+            out = 1.0 - _ease_out((t - (self.hook_s - 0.2)) / 0.2)
+            spr = self._hook_sprite
             h, w = spr.shape[:2]
-            T.blend(frame, spr, (W - w) // 2, int(max(SAFE_TOP, H * hook_y - h / 2)), opacity=max(0.0, out))
+            top = SAFE_TOP + 20 if split else HOOK_TOP
+            T.blend(frame, spr, (W - w) // 2, top, opacity=max(0.0, out))
             if self._credit_sprite is not None:
                 ch, cw = self._credit_sprite.shape[:2]
-                T.blend(frame, self._credit_sprite, (W - cw) // 2, int(max(SAFE_TOP, H * hook_y - h / 2) + h + 12),
-                        opacity=max(0.0, out))
+                T.blend(frame, self._credit_sprite, (W - cw) // 2, top + h + 10, opacity=max(0.0, out))
         elif self._head_sprite is not None and t < d - (1.9 if self.end_card else 0) and self.panel_at(t) is None:
-            k = _ease_out((t - self.hook_s) / 0.3)
+            k = _ease_out((t - self.hook_s) / 0.3) if self._hook_sprite is not None else 1.0
             h, w = self._head_sprite.shape[:2]
-            T.blend(frame, self._head_sprite, (W - w) // 2, SAFE_TOP + 10, opacity=k)
+            T.blend(frame, self._head_sprite, (W - w) // 2, SAFE_TOP + 16, opacity=k)
 
         for e in self.emoji:
             age = t - e.start
@@ -219,6 +236,68 @@ class Overlays:
                 k = max(0.0, 1.0 - abs(age) / 0.09) * 0.32
                 white = np.full_like(frame, 255)
                 cv2.addWeighted(white, k, frame, 1 - k, 0, dst=frame)
+
+
+HOOK_STYLES = ("native", "bold", "dark", "none")
+HOOK_TOP = 196          # px from the top: just below the platform's top bar, above a framed face
+
+
+def native_hook_size(text: str) -> int:
+    n = len(text.strip().rstrip("."))
+    return 72 if n <= 30 else 64 if n <= 48 else 56
+
+
+def balanced_lines(text: str, style: T.TextStyle, max_w: float, max_lines: int = 3) -> list[str]:
+    """Fewest lines that fit, with line widths as even as possible (no orphan last word).
+
+    Mirrored by balancedLines() in the dashboard preview."""
+    words = text.split()
+    if not words:
+        return []
+    width = [T.measure(w, style) for w in words]
+    space = T.measure(" ", style)
+
+    def w_of(a: int, b: int) -> float:
+        return sum(width[a:b]) + space * max(0, b - a - 1)
+
+    n = len(words)
+    if w_of(0, n) <= max_w or n == 1:
+        return [text]
+    best: tuple[float, list[str]] | None = None
+    for k in range(1, n):
+        if max_lines >= 2 and w_of(0, k) <= max_w and w_of(k, n) <= max_w:
+            score = max(w_of(0, k), w_of(k, n))
+            if best is None or score < best[0]:
+                best = (score, [" ".join(words[:k]), " ".join(words[k:])])
+    if best is None and max_lines >= 3:
+        for a in range(1, n - 1):
+            for b in range(a + 1, n):
+                parts = [(0, a), (a, b), (b, n)]
+                if all(w_of(x, y) <= max_w for x, y in parts):
+                    score = max(w_of(x, y) for x, y in parts)
+                    if best is None or score < best[0]:
+                        best = (score, [" ".join(words[x:y]) for x, y in parts])
+    if best is None:                       # still too long: fall back to greedy wrapping
+        return [" ".join(words[i] for i in ln) for ln in T.wrap(words, style, max_w)][:max_lines]
+    return best[1]
+
+
+def _stack(sprites: list[np.ndarray], overlap: int = 0) -> np.ndarray:
+    """Centre premultiplied RGBA sprites on top of each other (line-by-line text boxes)."""
+    if not sprites:
+        return np.zeros((1, 1, 4), np.uint8)
+    w = max(s.shape[1] for s in sprites)
+    h = sum(s.shape[0] for s in sprites) - overlap * (len(sprites) - 1)
+    out = np.zeros((h, w, 4), np.uint8)
+    y = 0
+    for s in sprites:
+        x = (w - s.shape[1]) // 2
+        region = out[y:y + s.shape[0], x:x + s.shape[1]].astype(np.float32)
+        src = s.astype(np.float32)
+        k = src[..., 3:4] / 255
+        out[y:y + s.shape[0], x:x + s.shape[1]] = np.clip(src + region * (1 - k), 0, 255).astype(np.uint8)
+        y += s.shape[0] - overlap
+    return out
 
 
 def hook_size(text: str) -> int:

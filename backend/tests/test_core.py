@@ -334,3 +334,24 @@ def test_audio_master_and_mix_end_to_end(tmp_path):
     master = A.master_voice(str(src), 0.5, 10.0, tmp_path / "voice.wav")
     out = A.build(str(master), edl, tmp_path / "mix.m4a", sfx_events=[], music=None, src_offset=0.5, voice_chain=False)
     assert abs(probe(out).duration - edl.duration) < 0.15
+
+
+def test_hook_lines_are_balanced():
+    from autoshorts.render import text as T
+    from autoshorts.render.overlays import balanced_lines
+
+    st = T.TextStyle(font=T.resolve_font("AvenirNext-Bold", "AvenirNext-Heavy"), size=72)
+    lines = balanced_lines("These deep sea creatures look alien", st, 880, 3)
+    assert len(lines) == 2 and all(len(l.split()) >= 2 for l in lines)      # no orphan word
+    assert balanced_lines("Short hook", st, 880) == ["Short hook"]
+
+
+
+def test_hyphenated_words_are_joined():
+    from autoshorts.understand.transcribe import add_word
+
+    words: list[dict] = []
+    for text, s, e in (("five", 0.0, 0.3), ("deep", 0.3, 0.6), ("-sea", 0.6, 0.9), ("creatures", 0.95, 1.4), ("-", 1.5, 1.6)):
+        add_word(words, text, s, e)
+    assert [w["w"] for w in words] == ["five", "deep-sea", "creatures", "-"]
+    assert words[1]["e"] == 0.9

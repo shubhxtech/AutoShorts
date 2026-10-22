@@ -414,7 +414,8 @@ def render(video: Video, src: Source, moment: Moment, spec: RenderSpec, out_path
                     end_card=bool(text.get("end_card", bool(settings.get("end_card")) and not tl.loop)),
                     cards=tl.cards, emoji=emoji, flashes=tl.flashes,
                     cta_keyword=(src.cta_keyword if getattr(src, "cta_keyword", "") else ""),
-                    key_words=set(moment.emphasis or []) | {"quit", "stop", "never", "secret", "truth", "mistake"})
+                    key_words=set(moment.emphasis or []) | {"quit", "stop", "never", "secret", "truth", "mistake"},
+                    hook_style=text.get("hook_style") or settings.get("hook_style") or "native")
 
     fps = master.fps
     dec_size = (MW, MH)                               # full master res so zooms stay sharp
@@ -554,6 +555,7 @@ def render(video: Video, src: Source, moment: Moment, spec: RenderSpec, out_path
             "caption_style": spec.caption_style, "caption_font": settings.get("caption_font") or "",
             "emphasis": sorted(tl.emphasis), "caption_y_track": y_track,
             "hook": spec.hook_text, "hook_seconds": hook_s if spec.hook_text else 0,
+            "hook_style": settings.get("hook_style") or "native",
             "headline": tl.headline, "credit": src.credit_text, "credit_link": src.credit_link,
             "cta": tl.cta, "cta_keyword": getattr(src, "cta_keyword", "") or "",
             "progress_bar": bool(settings.get("progress_bar")),
