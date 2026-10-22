@@ -579,18 +579,13 @@ def _broll_images(video: Video, moment: Moment, events: list, progress) -> list:
             todo.append((ev, path))
     if todo:
         progress(0.08, f"drawing {len(todo)} b-roll shot(s)")
-        from .. import llm
-        from ..faceless import draw_scenes
+        from .. import images, llm
 
         llm.unload()                       # free RAM for the image model
-        tmp = work / "tmp"
-        tmp.mkdir(exist_ok=True)
         try:
-            imgs = draw_scenes([f"{ev.visual}. {style}. vertical composition, no people, no faces, no hands, no text, "
-                                f"no watermark, no logos"
-                                for ev, _ in todo], tmp, seed=moment.id or 7, progress=lambda f, m: None)
-            for (ev, path), img in zip(todo, imgs):
-                img.rename(path)
+            images.generate([(f"{ev.visual}. {style}. vertical composition, no people, no faces, no hands, no text, "
+                              f"no watermark, no logos", path, (moment.id or 7) + k)
+                             for k, (ev, path) in enumerate(todo)], label="b-roll shot")
         except Exception as exc:  # noqa: BLE001
             log.warning("b-roll generation failed: %s", exc)
     for ev in events:

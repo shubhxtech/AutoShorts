@@ -51,7 +51,6 @@ VOICES = {  # Kokoro voices: first letter = language (a US, b UK, h Hindi, e Spa
     "hf_alpha": "Hindi female", "hm_omega": "Hindi male",
 }
 KOKORO = "mlx-community/Kokoro-82M-bf16"
-ZIMAGE = "filipstrand/Z-Image-Turbo-mflux-4bit"
 
 
 class Scene(BaseModel):
@@ -515,44 +514,13 @@ def draw_scenes(script: Script, style_key: str, work: Path, seed: int, progress,
             jobs.append((pb, b, sk + 1))
         result.append((a, b if use_b else None))
     if jobs:
-        from huggingface_hub import snapshot_download
-        from mflux.models.z_image.variants.z_image import ZImage
+        from . import images
 
-        try:
-            import mlx.core as mx
-
-            # MLX keeps freed buffers around by default; on a 16 GB Mac that pushes the image model into swap
-            # and each picture takes minutes instead of seconds.
-            mx.set_cache_limit(512 * 1024 * 1024)
-        except Exception:  # noqa: BLE001
-            mx = None
-        model = ZImage(quantize=4, model_path=snapshot_download(ZIMAGE))
-        fast = settings.get("faceless_quality") == "fast"
-        for j, (prompt, target, sk) in enumerate(jobs):
-            progress(j / len(jobs), f"drawing shot {j + 1}/{len(jobs)}")
-            t_shot = time.time()
-            # One seed for every shot keeps the drawing style and character design steady.
-            img = model.generate_image(seed=sk, prompt=prompt, num_inference_steps=6 if fast else 8,
-                                       width=576 if fast else 768, height=1024 if fast else 1344)
-            img.save(path=str(target)) if hasattr(img, "save") else img.image.save(target)
-            # A near-black frame means the model failed; it would look like a glitch.
-            arr = cv2.imread(str(target))
-            if arr is not None and float(arr.mean()) < 20:
-                img = model.generate_image(seed=sk + 101, prompt=prompt, num_inference_steps=8, width=768, height=1344)
-                img.save(path=str(target)) if hasattr(img, "save") else img.image.save(target)
-            meta[target.name] = prompt
+        def saved(j: int) -> None:                 # per shot, so a restart resumes from here
+            meta[jobs[j][1].name] = jobs[j][0]
             meta_path.write_text(json.dumps(meta, indent=1))
-            if mx is not None:
-                mx.clear_cache()
-            log.info("drew %s in %.0fs", target.name, time.time() - t_shot)
-        del model
-        gc.collect()
-        try:
-            import mlx.core as mx
 
-            mx.clear_cache()
-        except Exception:  # noqa: BLE001
-            pass
+        images.generate(jobs, progress, on_done=saved)
     return result
 
 
@@ -751,6 +719,12 @@ def finish_base(vid: int, script: Script, images: list, timings: list, clean: Pa
         s.refresh(m)
         clips = s.exec(_select(Clip).where(Clip.moment_id == m.id)).all()
     if clips:
+        with session() as s:
+            for c in clips:
+                cc = s.get(Clip, c.id)
+                cc.status, cc.error = "rendering", ""
+                s.add(cc)
+            s.commit()
         for c in clips:
             enqueue("rerender_clip", {"clip_id": c.id}, priority=8, dedupe_key=f"rerender:{c.id}")
     else:

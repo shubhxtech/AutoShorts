@@ -41,20 +41,17 @@ def pick_music(mood: str, seed: int) -> Path | None:
 
 
 def tts(text: str, out_wav: Path, voice: str = "") -> float:
-    """Offline narration with the macOS speech engine (use a Premium voice for best results)."""
-    aiff = out_wav.with_suffix(".aiff")
-    cmd = ["say", "-o", str(aiff)]
-    if voice:
-        cmd += ["-v", voice]
-    subprocess.run(cmd + [text], check=True, capture_output=True)
-    ffmpeg("-i", str(aiff), "-ar", "48000", "-ac", "2", str(out_wav))
-    aiff.unlink(missing_ok=True)
+    """Narrated intro in one of the local voices (every OS), resampled for the mix."""
+    from .. import voices
+
+    raw = out_wav.with_suffix(".raw.wav")
+    # Old installs stored a macOS voice name here ("Samantha"); those map to the default local voice.
+    voices.speak_to_file(text, voice if ":" in (voice or "") else "design:documentary", raw)
+    ffmpeg("-i", str(raw), "-ar", "48000", "-ac", "2", str(out_wav))
+    raw.unlink(missing_ok=True)
     from ..media import probe
 
     return probe(out_wav).duration
-
-
-VOICE_CHAIN = "highpass=f=75,afftdn=nr=8:nf=-38,acompressor=threshold=0.08:ratio=3:attack=8:release=140:makeup=1.6"
 
 
 def master_voice(src: str, a: float, b: float, out_wav: Path, has_audio: bool = True) -> Path:

@@ -65,6 +65,20 @@ DEFAULT_QWEN_SPEAKERS = ["Ryan", "Aiden", "Vivian", "Serena", "Uncle_Fu", "Dylan
 _loaded: dict = {"engine": None, "model": None}
 
 
+def backend() -> str:
+    """mlx on Apple Silicon (mlx-audio), torch everywhere else (CUDA or CPU)."""
+    import os
+
+    forced = os.environ.get("CLIPFORGE_VOICES", "").lower()
+    if forced in ("mlx", "torch"):
+        return forced
+    try:
+        import mlx_audio  # noqa: F401
+        return "mlx"
+    except ImportError:
+        return "torch"
+
+
 def catalog() -> list[dict]:
     """Every voice the UI can offer, best first."""
     out: list[dict] = []
@@ -113,6 +127,11 @@ def _model(engine: str):
 
 
 def unload() -> None:
+    if backend() == "torch":
+        from . import voices_torch
+
+        voices_torch.unload()
+        return
     if _loaded["model"] is not None:
         _loaded.update(engine=None, model=None)
         gc.collect()
@@ -131,11 +150,16 @@ def design_reference(key: str) -> tuple[Path, str]:
     safe = re.sub(r"[^A-Za-z0-9_-]+", "_", key)[:60]
     wav = d / f"{safe}.wav"
     if not wav.exists():
-        model = _model("design")
-        sr = int(getattr(model, "sample_rate", 24000) or 24000)
-        chunks = [np.array(r.audio, dtype=np.float32) for r in
-                  model.generate(text=REFERENCE_TEXT, instruct=DESIGNS.get(key, key), lang_code="auto")]
-        audio = np.concatenate(chunks)
+        if backend() == "torch":
+            from . import voices_torch
+
+            audio, sr = voices_torch.design_reference_audio(REFERENCE_TEXT, DESIGNS.get(key, key))
+        else:
+            model = _model("design")
+            sr = int(getattr(model, "sample_rate", 24000) or 24000)
+            chunks = [np.array(r.audio, dtype=np.float32) for r in
+                      model.generate(text=REFERENCE_TEXT, instruct=DESIGNS.get(key, key), lang_code="auto")]
+            audio = np.concatenate(chunks)
         nz = np.where(np.abs(audio) > 0.01)[0]
         if len(nz):
             audio = audio[max(0, nz[0] - int(0.05 * sr)): nz[-1] + int(0.2 * sr)]
@@ -159,7 +183,12 @@ def synth(text: str, voice: str, speed: float = 1.0) -> tuple[np.ndarray, int]:
     voice = normalize_id(voice)
     parts = voice.split(":")
     engine = parts[0]
-    model = _model(engine)
+    if backend() == "torch":
+        from . import voices_torch
+
+        return voices_torch.synth(text, parts, speed, STYLES, DESIGNS, design_reference)
+    # A designed voice only uses the clone model (its reference was made once), so don't load the design model here.
+    model = _model("clone" if engine == "design" else engine)
     sr = int(getattr(model, "sample_rate", 24000) or 24000)
     kw: dict = {}
     if engine == "kokoro":
