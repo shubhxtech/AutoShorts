@@ -24,7 +24,8 @@ def _bin(name: str) -> str:
                  f"/opt/homebrew/bin/{name}", f"/usr/local/bin/{name}"):
         if cand and Path(cand).exists():
             return cand
-    raise RuntimeError(f"{name} not found. Install it with: brew install ffmpeg")
+    raise RuntimeError(f"{name} not found. Install it: macOS `brew install ffmpeg`, Windows `winget install ffmpeg`, "
+                       "Linux `sudo apt install ffmpeg` (or set CLIPFORGE_FFMPEG to its path)")
 
 
 def ffmpeg_bin() -> str:
@@ -132,17 +133,38 @@ def encoders() -> set[str]:
     return {m.group(1) for m in re.finditer(r"^\s*V\S*\s+(\S+)", out, re.M)}
 
 
+@lru_cache
+def encoder_works(name: str) -> bool:
+    """Builds list NVENC/QSV/AMF even without that GPU: try a 0.1 s encode before trusting one."""
+    if name not in encoders():
+        return False
+    proc = run([ffmpeg_bin(), "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "color=black:s=256x256:d=0.1",
+                "-c:v", name, "-f", "null", "-"], check=False)
+    return proc.returncode == 0
+
+
+HW_ENCODERS = ["h264_videotoolbox", "h264_nvenc", "h264_qsv", "h264_amf"]
+
+
 def video_encoder_args(preference: str = "auto", bitrate: str = "10M") -> list[str]:
     encs = encoders()
-    use_vt = preference in ("auto", "videotoolbox") and "h264_videotoolbox" in encs
-    if use_vt:
-        maxrate = bitrate.rstrip("M")
-        try:
-            maxrate = f"{int(float(maxrate) * 1.4)}M"
-        except ValueError:
-            maxrate = bitrate
-        return ["-c:v", "h264_videotoolbox", "-profile:v", "high", "-b:v", bitrate, "-maxrate", maxrate,
-                "-bufsize", maxrate, "-allow_sw", "1"]
+    maxrate = bitrate.rstrip("M")
+    try:
+        maxrate = f"{int(float(maxrate) * 1.4)}M"
+    except ValueError:
+        maxrate = bitrate
+    wanted = {"videotoolbox": "h264_videotoolbox", "nvenc": "h264_nvenc", "qsv": "h264_qsv", "amf": "h264_amf"}
+    order = [wanted[preference]] if preference in wanted else HW_ENCODERS if preference == "auto" else []
+    hw = next((e for e in order if encoder_works(e)), None)
+    rate = ["-b:v", bitrate, "-maxrate", maxrate, "-bufsize", maxrate]
+    if hw == "h264_videotoolbox":
+        return ["-c:v", hw, "-profile:v", "high", *rate, "-allow_sw", "1"]
+    if hw == "h264_nvenc":
+        return ["-c:v", hw, "-preset", "p5", "-tune", "hq", "-rc", "vbr", "-profile:v", "high", *rate]
+    if hw == "h264_qsv":
+        return ["-c:v", hw, "-preset", "medium", "-profile:v", "high", *rate]
+    if hw == "h264_amf":
+        return ["-c:v", hw, "-quality", "quality", "-rc", "vbr_peak", "-profile:v", "high", *rate]
     if "libx264" in encs:
         return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "19", "-profile:v", "high",
                 "-maxrate", "14M", "-bufsize", "20M"]

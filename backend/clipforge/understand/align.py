@@ -28,7 +28,7 @@ def _load():
 
         proc = Wav2Vec2Processor.from_pretrained(MODEL)
         model = Wav2Vec2ForCTC.from_pretrained(MODEL).eval()
-        dev = "mps" if torch.backends.mps.is_available() else "cpu"
+        dev = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
         model.to(dev)
         _cache.update(model=model, proc=proc, dev=dev, vocab=proc.tokenizer.get_vocab())
     return _cache["model"], _cache["proc"], _cache["dev"], _cache["vocab"]

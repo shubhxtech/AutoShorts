@@ -19,7 +19,9 @@ load_dotenv()
 def _default_home() -> Path:
     if sys.platform == "darwin":
         return Path.home() / "Library" / "Application Support" / "ClipForge"
-    return Path.home() / ".clipforge"
+    if sys.platform == "win32":
+        return Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local") / "ClipForge"
+    return Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / "clipforge"
 
 
 class Paths:

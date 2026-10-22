@@ -59,11 +59,31 @@ def _mlx_transcribe(chunk: np.ndarray, model: str, language: str | None) -> dict
     return mlx_whisper.transcribe(chunk, **kwargs)
 
 
+_fw_cache: dict = {}
+
+
+def _fw_model(name: str):
+    """faster-whisper on the GPU when there is one (CUDA, float16), otherwise CPU int8."""
+    from faster_whisper import WhisperModel
+
+    if name not in _fw_cache:
+        try:
+            import ctranslate2
+
+            cuda = ctranslate2.get_cuda_device_count() > 0
+        except Exception:  # noqa: BLE001
+            cuda = False
+        _fw_cache.clear()
+        _fw_cache[name] = WhisperModel(name, device="cuda" if cuda else "cpu",
+                                       compute_type="float16" if cuda else "int8")
+    return _fw_cache[name]
+
+
 def _faster_transcribe(chunk: np.ndarray, model: str, language: str | None) -> dict:
     from faster_whisper import WhisperModel
 
     name = "large-v3-turbo" if "turbo" in model else "small"
-    wm = WhisperModel(name, compute_type="int8")
+    wm = _fw_model(name)
     segments, info = wm.transcribe(chunk, word_timestamps=True, language=language, condition_on_previous_text=False)
     segs = []
     for s in segments:
@@ -182,6 +202,7 @@ def _release() -> None:
         ModelHolder.model_path = None
     except ImportError:
         pass
+    _fw_cache.clear()
     gc.collect()
     try:
         import mlx.core as mx

@@ -61,7 +61,7 @@ class Tunnel:
         exe = shutil.which("cloudflared") or ("/opt/homebrew/bin/cloudflared" if shutil.os.path.exists("/opt/homebrew/bin/cloudflared") else None)
         if not exe:
             raise RuntimeError("Instagram Login accounts need a public URL for the video. Install cloudflared "
-                               "(brew install cloudflared) or connect the account with Facebook Login, which uploads directly.")
+                               "(macOS `brew install cloudflared`, Windows `winget install Cloudflare.cloudflared`) or connect the account with Facebook Login, which uploads directly.")
         self.proc = subprocess.Popen([exe, "tunnel", "--no-autoupdate", "--url", f"http://localhost:{config.port()}"],
                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         found = threading.Event()
