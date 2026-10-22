@@ -59,6 +59,8 @@ Paste a link to a podcast or long video you have the rights to. AutoShorts finds
 
 **⚡ Edit without waiting**
 
+- An editing timeline: scrub, frame-step, change speed, and see captions, cuts and overlays on their own tracks
+- Drag-to-trim handles that snap to words
 - Captions, hook and titles update instantly in the preview
 - Changing the edit style takes seconds, not a full re-render
 - Text is burned in only when you approve
@@ -90,7 +92,7 @@ Paste a link to a podcast or long video you have the rights to. AutoShorts finds
 
 <table>
 <tr>
-<td width="50%"><img src="docs/assets/screenshot-review.jpg" alt="Review queue with live caption editing" /><p align="center"><sub>Review: approve, reject or tweak; text edits are instant</sub></p></td>
+<td width="50%"><img src="docs/assets/screenshot-review.jpg" alt="Review queue with live caption editing" /><p align="center"><sub>Editor: live text, timeline with captions and cuts, drag-to-trim</sub></p></td>
 <td width="50%"><img src="docs/assets/screenshot-faceless.jpg" alt="Faceless studio format picker" /><p align="center"><sub>Faceless studio: pick a format, give a topic</sub></p></td>
 </tr>
 <tr>

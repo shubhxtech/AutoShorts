@@ -99,6 +99,15 @@ Text is the thing people change most, so it is never baked into the draft:
 3. `OverlayPreview.tsx` draws the same text over the playing video in the browser, mirroring the Python layout rules, so edits to captions, hook, position, size, style or colour show instantly. Captions can be dragged up and down.
 4. Edits are saved as overrides on the clip. On approval, `burn_clip` decodes the draft, draws the text layer with the same renderer used everywhere else, and re-encodes it (audio copied) in about 20 s. Publishing waits for the burn if needed.
 
+## Editing timeline
+
+Under the player, `EditorTimeline.tsx` gives editor-style control over the automated result:
+
+- **Transport**: play/pause, ±5 s, frame steps (`,` `.`), speed (0.5×–2×), loop, volume, and timeline zoom up to 8×.
+- **Tracks**: a time ruler, the video as a filmstrip (24 frames rendered by `/api/clips/{id}/filmstrip`) with cut points marked, a caption track (the same chunks the live preview draws), and an overlay track (hook, cards, emoji). Clicking any block seeks to it.
+- **Scrubbing**: click or drag anywhere; playback pauses while you drag and resumes afterwards. Everything reads the `<video>` element, so the live text layer stays in sync.
+- **Trimming**: drag the in and out handles (they snap to word edges; hold Alt to place freely), then apply. The handle positions are converted back to source time through the clip's cut list, and the clip is re-assembled from its master in seconds.
+
 ## Audio
 
 - Cuts are joined with 30 ms crossfades, so jump cuts have no clicks.

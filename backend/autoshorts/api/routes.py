@@ -786,6 +786,30 @@ def free_memory():
     return {"ok": True}
 
 
+FILMSTRIP_FRAMES = 24
+
+
+@router.get("/clips/{cid}/filmstrip")
+def clip_filmstrip(cid: int, s: Session = Depends(get_session)):
+    """Thumbnails across the clip in one image (FILMSTRIP_FRAMES wide), for the editor timeline."""
+    from fastapi.responses import FileResponse
+
+    from ..media import ffmpeg
+
+    c = s.get(Clip, cid)
+    if not c:
+        raise HTTPException(404)
+    src = (c.meta or {}).get("base_path") or c.file_path
+    if not src or not Path(src).is_file():
+        raise HTTPException(404, "This clip has no video yet")
+    out = Path(src).with_suffix(".strip.jpg")
+    if not out.exists() or out.stat().st_mtime < Path(src).stat().st_mtime:
+        dur = max(0.5, float(c.duration_s or 1))
+        ffmpeg("-i", src, "-vf", f"fps={FILMSTRIP_FRAMES / dur:.4f},scale=-2:112,tile={FILMSTRIP_FRAMES}x1",
+               "-frames:v", "1", "-q:v", "5", str(out))
+    return FileResponse(out, media_type="image/jpeg", headers={"Cache-Control": "no-cache"})
+
+
 @router.post("/clips/{cid}/titles")
 def clip_titles(cid: int, s: Session = Depends(get_session)):
     """Ask the local LLM for 10 title options (arrive in clip.meta.title_options)."""

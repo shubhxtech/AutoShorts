@@ -64,3 +64,26 @@ def test_errors_do_not_leak_internals():
     r = TestClient(app_mod.app, base_url="http://localhost", raise_server_exceptions=False).get(
         "/api/_boom_test", headers={HEADER: token()})
     assert r.status_code == 500 and "id_rsa" not in r.text and "ref" in r.json()["detail"]
+
+
+def test_filmstrip_for_the_editor_timeline(tmp_path):
+    import shutil
+
+    import pytest
+
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg not installed")
+    from autoshorts.db import save
+    from autoshorts.media import ffmpeg
+    from autoshorts.models import Clip, Moment, Source, Video
+
+    base = tmp_path / "clip_base.mp4"
+    ffmpeg("-f", "lavfi", "-i", "testsrc=size=270x480:rate=30:duration=4", "-pix_fmt", "yuv420p", str(base))
+    src = save(Source(name="test", kind="direct_url", url="", rights_type="own"))
+    video = save(Video(source_id=src.id, external_id="filmstrip-test", title="t"))
+    moment = save(Moment(video_id=video.id, start_s=0, end_s=4, text="", title="t"))
+    clip = save(Clip(moment_id=moment.id, video_id=video.id, source_id=src.id, variant="A", duration_s=4.0,
+                     meta={"base_path": str(base)}))
+    r = client().get(f"/api/clips/{clip.id}/filmstrip", headers={HEADER: token()})
+    assert r.status_code == 200 and r.headers["content-type"] == "image/jpeg" and len(r.content) > 1000
+    assert client().get(f"/api/clips/{clip.id}/filmstrip").status_code == 401

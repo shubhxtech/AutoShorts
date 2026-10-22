@@ -5,9 +5,10 @@ import { Bookmark, Heart, MessageCircle, Music2, Send } from "lucide-react";
 export const PhoneFrame = forwardRef<HTMLVideoElement, {
   src: string; poster?: string; safeZones?: boolean; platform?: "instagram" | "youtube"; caption?: string;
   autoPlay?: boolean; muted?: boolean; onEnded?: () => void; children?: ReactNode; className?: string; overlay?: ReactNode;
-}>(function PhoneFrame({ src, poster, safeZones = false, platform = "instagram", caption, autoPlay = true, muted = false, onEnded, children, className = "", overlay }, ref) {
+  maxWidth?: number;
+}>(function PhoneFrame({ src, poster, safeZones = false, platform = "instagram", caption, autoPlay = true, muted = false, onEnded, children, className = "", overlay, maxWidth = 340 }, ref) {
   return (
-    <div className={`relative mx-auto aspect-[9/19.5] w-full max-w-[340px] rounded-[44px] border-[10px] border-[#0b0b0b] bg-black shadow-2xl ring-1 ring-white/10 ${className}`}>
+    <div style={{ width: maxWidth, maxWidth: "100%" }} className={`relative mx-auto aspect-[9/19.5] rounded-[44px] border-[10px] border-[#0b0b0b] bg-black shadow-2xl ring-1 ring-white/10 ${className}`}>
       <div className="absolute left-1/2 top-2 z-20 h-6 w-24 -translate-x-1/2 rounded-full bg-[#0b0b0b]" />
       <div className="absolute inset-0 overflow-hidden rounded-[34px]">
         <div className="absolute inset-x-0 top-1/2 aspect-[9/16] -translate-y-1/2">

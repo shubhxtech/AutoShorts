@@ -15,7 +15,7 @@ export type OverlayEdits = Partial<{
 }>;
 type Word = [number, string, number, number, number];
 
-const STYLES: Record<string, { font: string; size: number; upper: boolean; maxWords: number; maxChars: number; lines: number; stroke: number; shadow: number; hl: string; pop: number; reveal?: boolean; capsEmph?: boolean; bg?: boolean; weight: number; stretch?: string }> = {
+export const STYLES: Record<string, { font: string; size: number; upper: boolean; maxWords: number; maxChars: number; lines: number; stroke: number; shadow: number; hl: string; pop: number; reveal?: boolean; capsEmph?: boolean; bg?: boolean; weight: number; stretch?: string }> = {
   clean: { font: "Avenir Next", size: 80, upper: false, maxWords: 3, maxChars: 20, lines: 1, stroke: 8, shadow: 6, hl: "emphasis", pop: 0.06, reveal: true, capsEmph: true, weight: 800 },
   chip: { font: "Avenir Next", size: 56, upper: false, maxWords: 2, maxChars: 16, lines: 1, stroke: 0, shadow: 0, hl: "none", pop: 0.05, bg: true, weight: 600 },
   bold: { font: "Avenir Next", size: 88, upper: true, maxWords: 3, maxChars: 18, lines: 1, stroke: 9, shadow: 6, hl: "color", pop: 0.18, weight: 800 },
@@ -27,7 +27,7 @@ const STYLES: Record<string, { font: string; size: number; upper: boolean; maxWo
 const WEAK_END = new Set(["the", "a", "an", "and", "or", "but", "to", "of", "in", "on", "at", "for", "with", "my", "your", "our", "his", "her", "their", "is", "was", "so", "if", "as", "by", "from"]);
 const GREEN = "#39FF7A";
 
-function chunk(words: Word[], st: (typeof STYLES)[string]) {
+export function captionChunks(words: Word[], st: (typeof STYLES)[string]) {
   const out: { idx: number[]; start: number; end: number }[] = [];
   let cur: number[] = [];
   let chars = 0;
@@ -97,7 +97,7 @@ export function OverlayPreview({ spec, words, edits, video, onDragCaption }: {
   const brand = s.brand || "#FFD400";
   const ew = edits.caption_edits || {};
   const textOf = (w: Word) => ew[String(w[0])] ?? w[1];
-  const chunks = useMemo(() => chunk(words, st), [words, st]);
+  const chunks = useMemo(() => captionChunks(words, st), [words, st]);
   const emph = useMemo(() => new Set(spec.emphasis || []), [spec.emphasis]);
   const d = spec.duration;
 

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckSquare, Clapperboard, Eye, EyeOff, Grid3x3, Volume2, VolumeX } from "lucide-react";
+import { CheckSquare, Clapperboard, Eye, EyeOff, Grid3x3 } from "lucide-react";
 import { api, fmt, type Clip } from "../api";
 import { useApi, useKey } from "../hooks";
 import { PhoneFrame } from "../components/PhoneFrame";
 import { ClipEditor, useAccounts } from "../components/ClipEditor";
 import { OverlayPreview } from "../components/OverlayPreview";
+import { EditorTimeline, usePlayerWidth } from "../components/EditorTimeline";
 import { useLiveEdits } from "../hooksLive";
 import { Empty, Page, useToast } from "../components/ui";
 
@@ -31,6 +32,8 @@ export default function Review() {
   const touch = useRef<{ x: number; y: number } | null>(null);
   const clips = data || [];
   const clip = clips[Math.min(idx, Math.max(0, clips.length - 1))];
+  const playerSlot = useRef<HTMLDivElement>(null);
+  const pw = usePlayerWidth(playerSlot, clip?.id);
   const live = useLiveEdits(clip);
 
   useEffect(() => setIdx(0), [tab]);
@@ -47,6 +50,14 @@ export default function Review() {
     }
   }
 
+  async function trim(c: Clip, tr: { start: number; end: number }) {
+    try {
+      const updated = await api.patch<Clip>(`/clips/${c.id}`, { trim_start: tr.start, trim_end: tr.end });
+      setData((d) => (d || []).map((x) => (x.id === updated.id ? updated : x)));
+      toast("info", "Trimming: re-cutting from the clip's master (about 15 seconds)");
+    } catch (e) { toast("err", (e as Error).message); }
+  }
+
   async function reject(ids: number[]) {
     await api.post("/clips/reject", { ids });
     setData((d) => (d || []).filter((c) => !ids.includes(c.id)));
@@ -58,9 +69,9 @@ export default function Review() {
     if (bulk || !clip) return;
     if (e.key === "a" || e.key === "A") approve([clip.id]);
     else if (e.key === "r" || e.key === "R") reject([clip.id]);
-    else if (e.key === "j" || e.key === "ArrowDown" || e.key === "ArrowRight") setIdx((i) => Math.min(clips.length - 1, i + 1));
-    else if (e.key === "k" || e.key === "ArrowUp" || e.key === "ArrowLeft") setIdx((i) => Math.max(0, i - 1));
-    else if (e.key === " ") { e.preventDefault(); const v = video.current; if (v) v.paused ? v.play() : v.pause(); }
+    // ← → Space , . belong to the timeline (scrub / play / frame step); J K ↑ ↓ switch clips.
+    else if (e.key === "j" || e.key === "ArrowDown") { e.preventDefault(); setIdx((i) => Math.min(clips.length - 1, i + 1)); }
+    else if (e.key === "k" || e.key === "ArrowUp") { e.preventDefault(); setIdx((i) => Math.max(0, i - 1)); }
     else if (e.key === "m" || e.key === "M") setMuted((m) => !m);
   }, [clip, clips.length, bulk]);
 
@@ -75,7 +86,7 @@ export default function Review() {
   }
 
   return (
-    <Page title="Review" subtitle="Swipe through the clips that passed quality checks. Approve, tweak or reject. About 10 minutes a day."
+    <Page title="Review"
       actions={
         <>
           <div className="flex rounded-xl border border-line p-0.5">
@@ -118,15 +129,15 @@ export default function Review() {
       ) : (
         <>
         {/* Narrower windows: a thumbnail strip instead of the side list, so the editor keeps its width. */}
-        <div className="mb-4 flex gap-2 overflow-x-auto pb-1 2xl:hidden">
+        <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1 2xl:hidden">
           {clips.map((c, i) => (
             <button key={c.id} onClick={() => setIdx(i)} title={c.hook_text}
-              className={`h-[72px] w-[41px] shrink-0 overflow-hidden rounded-md bg-black ${c.id === clip?.id ? "ring-2 ring-brand" : "opacity-70 hover:opacity-100"}`}>
+              className={`h-[52px] w-[29px] shrink-0 overflow-hidden rounded-md bg-black ${c.id === clip?.id ? "ring-2 ring-brand" : "opacity-70 hover:opacity-100"}`}>
               {c.thumb_url && <img src={c.thumb_url} className="h-full w-full object-cover" alt="" />}
             </button>
           ))}
         </div>
-        <div className="grid gap-6 md:grid-cols-[minmax(260px,340px)_minmax(0,1fr)] 2xl:grid-cols-[210px_minmax(300px,380px)_minmax(0,1fr)]">
+        <div className="grid gap-6 md:grid-cols-[auto_minmax(0,1fr)] 2xl:grid-cols-[210px_auto_minmax(0,1fr)]">
           <ul className="hidden max-h-[calc(100vh-180px)] space-y-2 overflow-y-auto pr-1 2xl:block">
             {clips.map((c, i) => (
               <li key={c.id}>
@@ -141,22 +152,16 @@ export default function Review() {
             ))}
           </ul>
 
-          <div onTouchStart={(e) => (touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY })} onTouchEnd={onTouchEnd}>
+          <div ref={playerSlot} onTouchStart={(e) => (touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY })} onTouchEnd={onTouchEnd}>
             {clip && (
-              <PhoneFrame ref={video} src={live.live ? clip.base_url! : clip.url} poster={live.live ? clip.base_poster || undefined : clip.thumb_url} muted={muted} safeZones={safe}
+              <PhoneFrame ref={video} src={live.live ? clip.base_url! : clip.url} poster={live.live ? clip.base_poster || undefined : clip.thumb_url} muted={muted} safeZones={safe} maxWidth={pw}
                 caption={clip.meta?.instagram_caption || clip.hook_text}
                 overlay={live.live && clip.overlay_spec ? <OverlayPreview spec={clip.overlay_spec} words={clip.words} edits={live.edits} video={video}
                   onDragCaption={(y) => live.update({ caption_y: Math.round(y * 100) / 100 })} /> : null} />
             )}
-            <div className="mt-4 flex items-center justify-center gap-2 text-sm">
-              <button className="btn-ghost" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={16} /> : <Volume2 size={16} />} <kbd>M</kbd></button>
-              <button className="btn-ghost" onClick={() => setSafe(!safe)}>{safe ? <EyeOff size={16} /> : <Eye size={16} />} Safe zones</button>
-              <span className="text-mute">{Math.min(idx, clips.length - 1) + 1} / {clips.length}</span>
-            </div>
-            <p className="mt-2 text-center text-xs text-mute"><kbd>J</kbd>/<kbd>K</kbd> next/prev · <kbd>A</kbd> approve · <kbd>R</kbd> reject · <kbd>Space</kbd> play · on phone: swipe → approve, ← reject</p>
           </div>
 
-          <div className="card flex h-[calc(100vh-180px)] min-h-[520px] flex-col overflow-hidden">
+          <div className="card flex min-h-[480px] flex-col overflow-hidden" style={{ height: Math.round((pw * 19.5) / 9) }}>
             {clip && (
               <ClipEditor clip={clip} accounts={accounts} live={live} video={video}
                 onChanged={(c) => setData((d) => (d || []).map((x) => (x.id === c.id ? c : x)))}
@@ -164,6 +169,16 @@ export default function Review() {
             )}
           </div>
         </div>
+        {clip && (
+          <div className="mt-3">
+            <EditorTimeline clip={clip} video={video} edits={live.edits} busy={clip.status === "rendering"}
+              onTrim={(tr) => trim(clip, tr)}
+              extra={<>
+                <button type="button" className="btn-ghost !px-2 !py-1 text-xs" onClick={() => setSafe(!safe)}>{safe ? <EyeOff size={13} /> : <Eye size={13} />} Safe zones</button>
+                <span className="px-1 text-mute" title="J / K or ↑ ↓: next / previous clip · A approve · R reject">{Math.min(idx, clips.length - 1) + 1} / {clips.length}</span>
+              </>} />
+          </div>
+        )}
         </>
       )}
     </Page>
