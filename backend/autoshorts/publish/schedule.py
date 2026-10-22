@@ -142,8 +142,12 @@ def schedule_clip(clip: Clip, account_ids: list[int], at: datetime | None = None
         use.status = "scheduled"
         save(use)
     if moment is not None and created:
-        moment.status = "rendered"
-        save(moment)
+        with session() as s:            # status only: don't overwrite cached plans/masters with an older copy
+            mm = s.get(Moment, moment.id)
+            if mm is not None:
+                mm.status = "rendered"
+                s.add(mm)
+                s.commit()
     return created
 
 

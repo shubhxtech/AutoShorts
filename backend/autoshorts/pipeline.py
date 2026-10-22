@@ -323,8 +323,14 @@ def render_moment(ctx: JobContext, p: dict) -> None:
         clip.status = "rendering"
         clip = save(clip)
         render_one(clip, moment, video, src, spec, ctx, k / len(specs), (k + 1) / len(specs))
-    moment.status = "rendered"
-    save(moment)
+    # Update the status only: rendering added cached plans and masters to the row's metadata, and saving
+    # this (older) copy of the moment would throw them away.
+    with session() as s:
+        mm = s.get(Moment, moment.id)
+        if mm is not None:
+            mm.status = "rendered"
+            s.add(mm)
+            s.commit()
     _finish_video_if_done(video.id)
 
 

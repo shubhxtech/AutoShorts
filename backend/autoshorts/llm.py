@@ -179,9 +179,15 @@ def complete(system: str, user: str, *, max_tokens: int = 1500, temperature: flo
     with _lock:
         mdl, tok = _load(name)
         prompt = _prompt(tok, system, user)
+        t0 = time.time()
         out = generate(mdl, tok, prompt=prompt, max_tokens=max_tokens,
                        sampler=make_sampler(temp=temperature, top_p=0.9), verbose=False)
         _state["last_used"] = time.time()
+        try:
+            n_in, n_out = len(tok.encode(prompt)), len(tok.encode(out))
+            log.info("llm call: %d prompt + %d output tokens in %.1fs (%s)", n_in, n_out, time.time() - t0, _task.get(""))
+        except Exception:  # noqa: S110 - logging only
+            pass
     return _strip_thinking(out)
 
 
@@ -225,9 +231,13 @@ def extract_json(text: str):
     raise ValueError("unterminated JSON in model output")
 
 
+_task: dict = {}
+
+
 def structured(schema: type[T], system: str, user: str, *, max_tokens: int = 2000, temperature: float = 0.3,
                model: str | None = None, attempts: int = 2) -> T:
     """Ask for JSON matching `schema` and return the validated object."""
+    _task[""] = schema.__name__
     shape = json.dumps(schema.model_json_schema(), ensure_ascii=False)
     sys_prompt = (f"{system}\n\nReply with a single JSON object that matches this JSON Schema and nothing else:\n"
                   f"{shape}")
@@ -244,3 +254,65 @@ def structured(schema: type[T], system: str, user: str, *, max_tokens: int = 200
             prompt = (f"{user}\n\nYour previous reply could not be parsed: {str(exc)[:400]}\n"
                       "Reply again with only the corrected JSON object.")
     raise ValueError(f"model never produced valid JSON: {last_err}")
+
+
+BATCH = 8   # prompts generated together (decode is memory-bound, so a batch costs little more than one)
+
+
+def complete_many(items: list[tuple[str, str]], *, max_tokens: int = 1500, temperature: float = 0.4,
+                  model: str | None = None, json_mode: bool = False) -> list[str]:
+    """Several independent completions at once: batched on MLX, parallel requests on a local server."""
+    if not items:
+        return []
+    if not available():
+        raise LLMUnavailable("local LLM is disabled, or no backend is running")
+    if backend() == "server":
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=min(4, len(items))) as pool:
+            return list(pool.map(lambda it: _strip_thinking(_server_complete(it[0], it[1], max_tokens, temperature,
+                                                                              json_mode)), items))
+    from mlx_lm import batch_generate
+    from mlx_lm.sample_utils import make_sampler
+
+    name = model or settings.get("llm_model")
+    out: list[str] = []
+    with _lock:
+        mdl, tok = _load(name)
+        for k in range(0, len(items), BATCH):
+            chunk = items[k:k + BATCH]
+            prompts = [tok.encode(_prompt(tok, s, u)) for s, u in chunk]
+            t0 = time.time()
+            res = batch_generate(mdl, tok, prompts, max_tokens=max_tokens,
+                                 sampler=make_sampler(temp=temperature, top_p=0.9))
+            texts = list(getattr(res, "texts", res))
+            log.info("llm batch: %d x %s, %d prompt tokens, in %.1fs", len(chunk), _task.get(""),
+                     sum(len(p) for p in prompts), time.time() - t0)
+            out += [_strip_thinking(x) for x in texts]
+        _state["last_used"] = time.time()
+    return out
+
+
+def structured_many(schema: type[T], system: str, users: list[str], *, max_tokens: int = 2000,
+                    temperature: float = 0.3, model: str | None = None) -> list[T | None]:
+    """structured() for many prompts at once. Replies that don't parse are retried one by one
+    (with the error fed back); anything still failing comes back as None."""
+    _task[""] = schema.__name__
+    shape = json.dumps(schema.model_json_schema(), ensure_ascii=False)
+    sys_prompt = (f"{system}\n\nReply with a single JSON object that matches this JSON Schema and nothing else:\n"
+                  f"{shape}")
+    raws = complete_many([(sys_prompt, u) for u in users], max_tokens=max_tokens, temperature=temperature,
+                         model=model, json_mode=True)
+    out: list[T | None] = []
+    for user, raw in zip(users, raws):
+        try:
+            out.append(schema.model_validate(extract_json(raw)))
+        except (ValueError, ValidationError) as exc:
+            log.warning("batched reply for %s didn't parse (%s); retrying it alone", schema.__name__, str(exc)[:200])
+            try:
+                out.append(structured(schema, system, user, max_tokens=max_tokens, temperature=0.1, model=model,
+                                      attempts=1))
+            except Exception:
+                out.append(None)
+    return out
+

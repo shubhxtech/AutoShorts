@@ -39,15 +39,17 @@ def _size(fast: bool) -> tuple[int, int, int]:
 
 
 def generate(jobs: list[tuple[str, Path, int]], progress: Callable[[float, str], None] | None = None,
-             label: str = "shot", on_done: Callable[[int], None] | None = None) -> list[Path]:
+             label: str = "shot", on_done: Callable[[int], None] | None = None, quick: bool = False) -> list[Path]:
     """Draw each (prompt, target, seed). Near-black results (a failed sample) are retried once."""
     import cv2
 
     if not jobs:
         return []
     progress = progress or (lambda f, m: None)
-    fast = settings.get("faceless_quality") == "fast"
+    fast = quick or settings.get("faceless_quality") == "fast"
     w, h, steps = _size(fast)
+    if quick and settings.get("faceless_quality") != "fast":
+        w, h, steps = 672, 1184, 6           # brief cutaways: a little smaller and fewer steps, same look
     draw, release = _mlx() if backend() == "mlx" else _torch()
     out = []
     try:

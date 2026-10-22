@@ -65,6 +65,14 @@ def cleanup(ctx: JobContext, p: dict) -> None:
             freed += _rm((c.meta or {}).get("base_path", ""))
             c.file_path = ""
             save(c)
+    # Interrupted downloads leave yt-dlp fragments behind (often hundreds of MB).
+    for f in [*paths().library.rglob("*.part"), *paths().library.rglob("*.part-Frag*"), *paths().library.rglob("*.ytdl")]:
+        try:
+            if now.timestamp() - f.stat().st_mtime > 86400:
+                freed += f.stat().st_size
+                f.unlink()
+        except OSError:
+            pass
     for f in paths().tmp.glob("*"):
         try:
             if now.timestamp() - f.stat().st_mtime > 86400:

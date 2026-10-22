@@ -81,6 +81,24 @@ def _llm_score(sents, w: cand.Window, title: str, niche: str) -> MomentScore | N
     except Exception as exc:
         log.warning("LLM scoring failed for window %s-%s: %s", w.s0, w.s1, exc)
         return None
+    return _fit_bounds(res, w, sents)
+
+
+def _score_all(sents, windows: list[cand.Window], title: str, niche: str) -> list[MomentScore | None]:
+    """Score every candidate in one batched pass (several times faster than one call each)."""
+    try:
+        results = llm.structured_many(MomentScore, SCORE_SYSTEM,
+                                      [score_prompt(_lines(sents, w.s0, w.s1, w.start), title, niche) for w in windows],
+                                      max_tokens=700, temperature=0.2, model=settings.get("llm_fast_model"))
+    except llm.LLMUnavailable:
+        return [None] * len(windows)
+    except Exception as exc:
+        log.warning("batched scoring failed (%s); scoring one by one", exc)
+        return [_llm_score(sents, w, title, niche) for w in windows]
+    return [_fit_bounds(r, w, sents) if r is not None else None for r, w in zip(results, windows)]
+
+
+def _fit_bounds(res: MomentScore, w: cand.Window, sents) -> MomentScore:
     # Keep LLM-proposed bounds only if they're inside the window and still a valid length.
     lo, hi = sorted((res.best_start, res.best_end))
     lo, hi = max(w.s0, lo), min(w.s1, hi)
@@ -105,14 +123,18 @@ def _llm_scout(sents: list[dict], title: str, niche: str, min_s: float, max_s: f
             break
         i = max(i + 1, j - max(3, (j - i) // 6))       # ~15% overlap so arcs at boundaries aren't lost
     out: list[cand.Window] = []
-    for k, (a, b) in enumerate(sections):
-        progress(0.3 * k / max(1, len(sections)), f"skimming the episode ({k + 1}/{len(sections)})")
-        lines = [(x["i"], x["s"], x["text"]) for x in sents[a:b + 1]]
-        try:
-            res = llm.structured(ScoutResult, SCOUT_SYSTEM, scout_prompt(lines, title, niche), max_tokens=900,
-                                 temperature=0.3, model=settings.get("llm_fast_model"))
-        except Exception as exc:
-            log.warning("scout pass failed on section %d: %s", k, exc)
+    progress(0.05, f"skimming the episode ({len(sections)} section{'s' if len(sections) > 1 else ''})")
+    try:
+        results = llm.structured_many(
+            ScoutResult, SCOUT_SYSTEM,
+            [scout_prompt([(x["i"], x["s"], x["text"]) for x in sents[a:b + 1]], title, niche) for a, b in sections],
+            max_tokens=900, temperature=0.3, model=settings.get("llm_fast_model"))
+    except Exception as exc:
+        log.warning("scout pass failed: %s", exc)
+        results = []
+    for k, ((a, b), res) in enumerate(zip(sections, results)):
+        if res is None:
+            log.warning("scout pass failed on section %d", k)
             continue
         for p in res.picks:
             lo, hi = sorted((p.start_line, p.end_line))
@@ -158,15 +180,31 @@ def snap_to_sentences(sents: list[dict], lo: int, hi: int) -> tuple[int, int]:
     return lo, hi
 
 
-def _refine(sents: list[dict], lo: int, hi: int, title: str, min_s: float, max_s: float) -> dict:
-    """The editor pass: widen/tighten boundaries with context, cut tangents, judge if it stands alone."""
+def _refine_request(sents: list[dict], lo: int, hi: int, title: str) -> tuple[int, int, str]:
     a, b = max(0, lo - 10), min(len(sents) - 1, hi + 15)
     lines = [(sents[i]["i"], sents[i]["s"] - sents[a]["s"], sents[i]["text"]) for i in range(a, b + 1)]
+    return a, b, refine_prompt(lines, lo, hi, title)
+
+
+def _refine_many(sents: list[dict], spans: list[tuple[int, int]], title: str, min_s: float, max_s: float) -> list[dict]:
+    """The editor pass for several candidates in one batch."""
+    reqs = [_refine_request(sents, lo, hi, title) for lo, hi in spans]
     try:
-        r = llm.structured(Refined, REFINE_SYSTEM, refine_prompt(lines, lo, hi, title), max_tokens=700,
-                           temperature=0.2)
+        results = llm.structured_many(Refined, REFINE_SYSTEM, [r[2] for r in reqs], max_tokens=700, temperature=0.2)
     except Exception as exc:
         log.warning("editor pass failed, keeping the scored bounds: %s", exc)
+        results = [None] * len(spans)
+    return [_refine_result(r, sents, lo, hi, a, b, min_s, max_s)
+            for r, (lo, hi), (a, b, _) in zip(results, spans, reqs)]
+
+
+def _refine(sents: list[dict], lo: int, hi: int, title: str, min_s: float, max_s: float) -> dict:
+    """The editor pass: widen/tighten boundaries with context, cut tangents, judge if it stands alone."""
+    return _refine_many(sents, [(lo, hi)], title, min_s, max_s)[0]
+
+
+def _refine_result(r, sents, lo: int, hi: int, a: int, b: int, min_s: float, max_s: float) -> dict:
+    if r is None:
         return {"lo": lo, "hi": hi, "drop": [], "structure": "other", "note": "", "ok": True, "sense": True}
     nlo, nhi = sorted((r.start_line, r.end_line))
     nlo, nhi = max(a, nlo), min(b, nhi)
@@ -210,9 +248,9 @@ def mine(video: Video, src: Source, progress: Callable[[float, str], None]) -> l
     keywords = episode_keywords(transcript["words"], 30)
 
     scored: list[tuple[cand.Window, MomentScore, float]] = []
-    for idx, w in enumerate(shortlist):
-        progress(0.3 + 0.4 * idx / max(1, len(shortlist)), f"scoring moment {idx + 1}/{len(shortlist)}")
-        res = _llm_score(sents, w, video.title, src.niche) if use_llm else None
+    progress(0.3, f"scoring {len(shortlist)} candidate moments")
+    llm_scores = _score_all(sents, shortlist, video.title, src.niche) if use_llm else [None] * len(shortlist)
+    for w, res in zip(shortlist, llm_scores):
         if res is None:
             res = _heuristic_scores(w)
         rank = heur.index(w.heuristic) / max(1, len(heur) - 1)       # 0..1 heuristic percentile
@@ -228,14 +266,24 @@ def mine(video: Video, src: Source, progress: Callable[[float, str], None]) -> l
     # Editor pass: fix boundaries with surrounding context, cut tangents, reject clips that don't stand alone.
     chosen: list[tuple[cand.Window, MomentScore, float, dict]] = []
     near_miss: list[tuple[float, cand.Window, MomentScore, float, dict]] = []
-    for w, res, final in scored:
+    refined: dict[int, dict] = {}            # index in `scored` -> editor result, filled 4 at a time
+
+    def refine_at(i: int) -> dict:
+        if i not in refined:
+            batch = [j for j in range(i, len(scored)) if j not in refined][:4]
+            spans = [(scored[j][1].best_start, scored[j][1].best_end) for j in batch]
+            for j, r in zip(batch, _refine_many(sents, spans, video.title, min_s, max_s)):
+                refined[j] = r
+        return refined[i]
+
+    for i, (w, res, final) in enumerate(scored):
         if len(chosen) >= keep_n:
             break
         if final < min_final and len(chosen) >= 2:
             continue
         if res.hook < 4 and len(near_miss) >= 4:
             continue
-        edit_ = _refine(sents, res.best_start, res.best_end, video.title, min_s, max_s) if use_llm else \
+        edit_ = refine_at(i) if use_llm else \
             {"lo": res.best_start, "hi": res.best_end, "drop": [], "structure": "other", "note": "", "ok": True, "sense": True}
         progress(0.7 + 0.1 * len(chosen) / max(1, keep_n), f"editing clip {len(chosen) + 1}/{keep_n}")
         if "hook" in edit_:
@@ -281,19 +329,23 @@ def mine(video: Video, src: Source, progress: Callable[[float, str], None]) -> l
             s.delete(old)
         s.commit()
 
+    progress(0.85, f"writing hooks and titles for {len(chosen)} clips")
+    packs: list = [None] * len(chosen)
+    if use_llm and chosen:
+        prompts = []
+        for _w, res, _f, edit_ in chosen:
+            lo, hi = res.best_start, res.best_end
+            keep_lines = [i for i in range(lo, hi + 1) if i not in set(edit_["drop"])]
+            prompts.append(creative_prompt([(sents[i]["i"], sents[i]["s"] - sents[lo]["s"], sents[i]["text"]) for i in keep_lines],
+                                           video.title, src.niche, _creative_language(video, src)))
+        try:
+            packs = llm.structured_many(Creative, CREATIVE_SYSTEM, prompts, max_tokens=1400, temperature=0.6)
+        except Exception as exc:
+            log.warning("LLM packaging failed: %s", exc)
     for idx, (w, res, final, edit_) in enumerate(chosen):
-        progress(0.8 + 0.2 * idx / max(1, len(chosen)), f"writing hooks {idx + 1}/{len(chosen)}")
         lo, hi = res.best_start, res.best_end
         keep_lines = [i for i in range(lo, hi + 1) if i not in set(edit_["drop"])]
-        creative = None
-        if use_llm:
-            try:
-                creative = llm.structured(Creative, CREATIVE_SYSTEM,
-                                          creative_prompt([(sents[i]["i"], sents[i]["s"] - sents[lo]["s"], sents[i]["text"]) for i in keep_lines], video.title,
-                                                          src.niche, _creative_language(video, src)),
-                                          max_tokens=1400, temperature=0.6)
-            except Exception as exc:
-                log.warning("LLM packaging failed: %s", exc)
+        creative = packs[idx]
         if creative is None:
             creative = _template_creative(sents, cand.Window(lo, hi, sents[lo]["s"], sents[hi]["e"]), keywords)
         creative = _clean_creative(creative, transcript["words"], sents, lo, hi)
