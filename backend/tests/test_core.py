@@ -265,3 +265,52 @@ def test_quiz_verification_drops_unsupported_questions():
     kinds = [x.kind for x in s.scenes]
     assert kinds == ["question", "answer", "question", "answer"]
     assert all("1960s" not in x.narration for x in s.scenes)
+
+
+def test_skia_text_renders_devanagari_and_boxes(monkeypatch):
+    import pytest
+
+    from clipforge.render import text as T
+    from clipforge.render import text_skia
+
+    if not text_skia.available():
+        pytest.skip("skia-python not installed")
+    monkeypatch.setenv("CLIPFORGE_TEXT", "skia")
+    monkeypatch.setattr(text_skia, "ensure_fonts", lambda: [])        # system fonts only: no network in tests
+    text_skia._collection.cache_clear()
+    st = T.TextStyle(font=T.resolve_font("AvenirNext-Heavy", "Arial-Black"), size=60, stroke=4,
+                     background=(255, 255, 255, 255))
+    spr = T.render([[T.Span("IQ ", (0, 0, 0, 255), 1.0, (255, 214, 10, 255)), T.Span("से बेहतर", (0, 0, 0, 255))]], st)
+    assert spr.ndim == 3 and spr.shape[2] == 4 and spr.shape[1] > 200
+    assert (spr[..., 3] > 0).mean() > 0.3                      # the background box is drawn
+    assert T.measure("से बेहतर", st) > T.measure("से", st) > 0  # shaped width grows with text
+    text_skia._collection.cache_clear()
+
+
+def test_encoder_falls_back_to_software(monkeypatch):
+    from clipforge import media
+
+    monkeypatch.setattr(media, "encoders", lambda: {"libx264", "h264_nvenc"})
+    monkeypatch.setattr(media, "encoder_works", lambda name: False)   # NVENC listed but no GPU
+    args = media.video_encoder_args("auto")
+    assert args[:2] == ["-c:v", "libx264"]
+    monkeypatch.setattr(media, "encoder_works", lambda name: name == "h264_nvenc")
+    assert media.video_encoder_args("auto")[:2] == ["-c:v", "h264_nvenc"]
+
+
+def test_llm_server_backend(monkeypatch):
+    from clipforge import llm, settings
+    from clipforge.titles import TitleOptions
+
+    vals = {"llm_backend": "server", "llm_enabled": True, "llm_server_url": "http://x/v1", "llm_server_model": "m"}
+    monkeypatch.setattr(settings, "get", lambda k, d=None: vals.get(k, d))
+    monkeypatch.setattr(llm, "_server_up", lambda: True)
+    seen = {}
+
+    def fake(system, user, max_tokens, temperature, json_mode):
+        seen["json"] = json_mode
+        return '<think>hmm</think>{"titles": ["One", "Two"]}'
+
+    monkeypatch.setattr(llm, "_server_complete", fake)
+    assert llm.backend() == "server"
+    assert llm.structured(TitleOptions, "s", "u").titles == ["One", "Two"] and seen["json"] is True
