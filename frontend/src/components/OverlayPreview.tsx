@@ -1,7 +1,7 @@
 // Live text layer drawn over the clean base video, so text edits are instant.
 // Mirrors backend/autoshorts/render/captions.py + overlays.py (same canvas size, fonts and timings);
 // the final MP4 is burned by the backend with the same settings on approval.
-import { RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 export type OverlaySpec = {
   duration: number; fps: number; brand: string; caption_style: string; caption_font: string; emphasis: number[];
@@ -83,9 +83,11 @@ export function OverlayPreview({ spec, words, edits, video, onDragCaption }: {
   const t = useVideoTime(video);
   const box = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.3);
-  useEffect(() => {
+  // Measure before the first paint (the observer alone fires a frame late, and the player now resizes itself).
+  useLayoutEffect(() => {
     const el = box.current?.parentElement;
     if (!el) return;
+    setScale(el.clientWidth / 1080);
     const ro = new ResizeObserver(() => setScale(el.clientWidth / 1080));
     ro.observe(el);
     return () => ro.disconnect();
