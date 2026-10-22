@@ -182,6 +182,7 @@ class Master:
     fps: float
     track: list                # every 3rd frame: [t_src, layout, focus_x, focus_y, face_bottom]
     face_ok: float | None
+    frames_from_source: bool = False   # `path` is the source video itself (faceless): frame time = source time
 
     def at(self, t_src: float) -> list:
         tr = self.track
@@ -207,7 +208,8 @@ def ensure_master(video: Video, moment: Moment, layout: str, need: tuple[float, 
     from ..db import session
 
     for key, m in ((moment.meta or {}).get("masters") or {}).items():
-        if key.startswith(f"{layout}:") and key.endswith(":v2") and m["span0"] <= need[0] + 1e-3 and m["span1"] >= need[1] - 1e-3 \
+        # (a few frames of tolerance: cut ranges round to the millisecond and can sit just outside)
+        if key.startswith(f"{layout}:") and key.endswith(":v2") and m["span0"] <= need[0] + 0.15 and m["span1"] >= need[1] - 0.15 \
                 and Path(m["path"]).exists() and Path(m["audio"]).exists():
             return Master(**m)
     dur = probe(video.file_path).duration or (need[1] + MARGIN)
@@ -243,6 +245,12 @@ def build_master(video: Video, moment: Moment, layout_pref: str, a: float, b: fl
 
     # Voice: cleaned once here; the assembly only cuts and mixes it.
     A.master_voice(video.file_path, a, b, apath, has_audio=pr.has_audio)
+    if faceless:
+        # Faceless videos are already 9:16, drawn and graded: no tracking or reframing to do, so the
+        # assembly reads the faceless video itself (offset by span0) instead of a re-encoded copy.
+        log.info("faceless master: voice only (%.1fs)", time.time() - t0)
+        return Master(path=str(video.file_path), audio=str(apath), span0=a, span1=b, fps=fps, track=[],
+                      face_ok=None, frames_from_source=True)
 
     dw, dh = (1080, 1080) if audio_only else _decode_size(pr.width, pr.height)
     camera = None
@@ -338,7 +346,8 @@ def _zoom_crop(frame: np.ndarray, z: float, fx: float, fy: float, out_w: int, ou
 
 def render(video: Video, src: Source, moment: Moment, spec: RenderSpec, out_path: Path,
            caption_edits: dict | None = None, progress: Callable[[float, str], None] | None = None,
-           burn: bool = True, overrides: dict | None = None, quality: str | None = None) -> dict:
+           burn: bool = True, overrides: dict | None = None, quality: str | None = None,
+           ranges: list[tuple[float, float, float]] | None = None) -> dict:
     """Build (or reuse) the moment's master, then assemble this variant from it.
 
     burn=False: a clean draft for review (text is drawn live by the dashboard).
@@ -353,9 +362,14 @@ def render(video: Video, src: Source, moment: Moment, spec: RenderSpec, out_path
     if spec.length == "tight" and moment.tight_start_s is not None:
         start, end = moment.tight_start_s, moment.tight_end_s or end
     cold = tuple(moment.punchline_s) if spec.opening == "cold_open" and moment.punchline_s else None
-    edl = E.build(words, start, end, jump_cuts=bool(settings.get("jump_cuts")),
-                  max_pause=float(settings.get("max_pause_s")), cold_open=cold, alt_zoom=1.0,
-                  exclude=(moment.meta or {}).get("drop") or None)
+    if ranges:
+        # The editor's virtual cut (reordered / trimmed / cut sections), already jump-cut.
+        edl = E.from_ranges(words, ranges)
+        spec.opening = "straight"
+    else:
+        edl = E.build(words, start, end, jump_cuts=bool(settings.get("jump_cuts")),
+                      max_pause=float(settings.get("max_pause_s")), cold_open=cold, alt_zoom=1.0,
+                      exclude=(moment.meta or {}).get("drop") or None)
     tmp = paths().tmp / f"render_{out_path.stem}_{quality}"
     tmp.mkdir(parents=True, exist_ok=True)
     narration = None
@@ -428,7 +442,8 @@ def render(video: Video, src: Source, moment: Moment, spec: RenderSpec, out_path
                     hook_style=text.get("hook_style") or settings.get("hook_style") or "native")
 
     fps = master.fps
-    dec_size = (MW, MH)                               # full master res so zooms stay sharp
+    # full master res so zooms stay sharp (faceless videos are already the output size)
+    dec_size = (W, H) if master.frames_from_source else (MW, MH)
     enc = subprocess.Popen([ffmpeg_bin(), "-hide_banner", "-loglevel", "error", "-y", "-f", "rawvideo", "-pix_fmt", "bgr24",
                             "-s", f"{W}x{H}", "-r", f"{fps}", "-i", "-", "-i", str(audio_path), "-map", "0:v", "-map", "1:a",
                             *video_encoder_args(settings.get("encoder") or "auto",
@@ -451,7 +466,7 @@ def render(video: Video, src: Source, moment: Moment, spec: RenderSpec, out_path
             seg = edl.segment_at(t)
             si = edl.segments.index(seg)
             t_src = edl.to_source(t)
-            m_t = t_src - master.span0
+            m_t = t_src if master.frames_from_source else t_src - master.span0
             zoom = seg.zoom * tl.zoom_at(t)
             if seg.kind == "still":
                 zoom *= 1.0 + 0.06 * (t - seg.out_start) / max(0.1, seg.duration)

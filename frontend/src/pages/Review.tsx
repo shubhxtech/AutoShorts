@@ -8,6 +8,7 @@ import { ClipEditor, useAccounts } from "../components/ClipEditor";
 import { OverlayPreview } from "../components/OverlayPreview";
 import { EditorTimeline, usePlayerWidth } from "../components/EditorTimeline";
 import { useLiveEdits } from "../hooksLive";
+import { useVirtualPlayer } from "../hooksVirtual";
 import { Empty, Page, useToast } from "../components/ui";
 
 const TABS = [
@@ -35,6 +36,7 @@ export default function Review() {
   const playerSlot = useRef<HTMLDivElement>(null);
   const pw = usePlayerWidth(playerSlot, clip?.id);
   const live = useLiveEdits(clip);
+  const vp = useVirtualPlayer(clip, video);
 
   useEffect(() => setIdx(0), [tab]);
 
@@ -52,7 +54,7 @@ export default function Review() {
 
   async function trim(c: Clip, tr: { start: number; end: number }) {
     try {
-      const updated = await api.patch<Clip>(`/clips/${c.id}`, { trim_start: tr.start, trim_end: tr.end });
+      const updated = await api.patch<Clip>(`/clips/${c.id}`, { trim_start: tr.start, trim_end: tr.end, cut: [] });
       setData((d) => (d || []).map((x) => (x.id === updated.id ? updated : x)));
       toast("info", "Trimming: re-cutting from the clip's master (about 15 seconds)");
     } catch (e) { toast("err", (e as Error).message); }
@@ -157,13 +159,13 @@ export default function Review() {
               <PhoneFrame ref={video} src={live.live ? clip.base_url! : clip.url} poster={live.live ? clip.base_poster || undefined : clip.thumb_url} muted={muted} safeZones={safe} maxWidth={pw}
                 caption={clip.meta?.instagram_caption || clip.hook_text}
                 overlay={live.live && clip.overlay_spec ? <OverlayPreview spec={clip.overlay_spec} words={clip.words} edits={live.edits} video={video}
-                  onDragCaption={(y) => live.update({ caption_y: Math.round(y * 100) / 100 })} /> : null} />
+                  onDragCaption={(y) => live.update({ caption_y: Math.round(y * 100) / 100 })} clock={vp.clock} /> : null} />
             )}
           </div>
 
           <div className="card flex min-h-[480px] flex-col overflow-hidden" style={{ height: Math.round((pw * 19.5) / 9) }}>
             {clip && (
-              <ClipEditor clip={clip} accounts={accounts} live={live} video={video}
+              <ClipEditor clip={clip} accounts={accounts} live={live} video={video} vp={vp}
                 onChanged={(c) => setData((d) => (d || []).map((x) => (x.id === c.id ? c : x)))}
                 onApprove={approve} onReject={reject} />
             )}
@@ -171,7 +173,7 @@ export default function Review() {
         </div>
         {clip && (
           <div className="mt-3">
-            <EditorTimeline clip={clip} video={video} edits={live.edits} busy={clip.status === "rendering"}
+            <EditorTimeline clip={clip} video={video} vp={vp} edits={live.edits} busy={clip.status === "rendering"}
               onTrim={(tr) => trim(clip, tr)}
               extra={<>
                 <button type="button" className="btn-ghost !px-2 !py-1 text-xs" onClick={() => setSafe(!safe)}>{safe ? <EyeOff size={13} /> : <Eye size={13} />} Safe zones</button>

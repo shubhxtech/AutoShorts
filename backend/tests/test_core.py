@@ -355,3 +355,25 @@ def test_hyphenated_words_are_joined():
         add_word(words, text, s, e)
     assert [w["w"] for w in words] == ["five", "deep-sea", "creatures", "-"]
     assert words[1]["e"] == 0.9
+
+
+def test_render_from_virtual_cut_ranges():
+    from autoshorts.render import edl as E
+
+    words = [{"w": f"w{i}", "s": i * 0.5, "e": i * 0.5 + 0.4, "p": 1.0} for i in range(20)]
+    # a teaser from 6-7.5 s first, then 0-3 s and 5-9 s (3-5 s cut out)
+    edl = E.from_ranges(words, [(6.0, 7.5, 1.15), (0.0, 3.0, 1.0), (5.0, 9.0, 1.0)])
+    assert abs(edl.duration - 8.5) < 1e-6
+    assert [w.text for w in edl.words[:3]] == ["w12", "w13", "w14"]          # teaser words come first
+    assert not any(w.text in ("w6", "w7", "w8", "w9") and w.start > 1.5 and w.start < 4.5 for w in edl.words)
+    assert edl.segments[0].zoom == 1.15
+
+
+def test_cut_ranges_clamp_and_zoom():
+    from autoshorts.models import Clip
+    from autoshorts.pipeline import cut_ranges
+
+    c = Clip(moment_id=0, video_id=0, source_id=0, variant="A",
+             meta={"cut": [[-0.01, 2.0], [5.0, 6.0]]}, render_stats={"edl": [[0, 3, "main", 1.0], [4.5, 7, "main", 1.14]]})
+    assert cut_ranges(c) == [(0.0, 2.0, 1.0), (5.0, 6.0, 1.14)]
+    assert cut_ranges(Clip(moment_id=0, video_id=0, source_id=0, variant="A", meta={})) is None

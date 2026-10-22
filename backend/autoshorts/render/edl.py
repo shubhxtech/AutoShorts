@@ -190,6 +190,12 @@ def build(words: list[dict], start: float, end: float, *, jump_cuts: bool = True
     return EDL(segs).finalize(words)
 
 
+def from_ranges(words: list[dict], ranges: list[tuple[float, float, float]]) -> EDL:
+    """An EDL from an explicit, ordered list of (src_start, src_end, zoom): the editor's virtual cut."""
+    segs = [Segment(a, b, kind="main", zoom=z) for a, b, z in ranges if b - a > 0.04]
+    return EDL(segs).finalize(words)
+
+
 def prepend_still(edl: EDL, duration: float, at: float, words: list[dict]) -> EDL:
     """Hold a frame for a narrated intro."""
     edl.segments.insert(0, Segment(at, at + duration, kind="still", zoom=1.08, still_at=at))

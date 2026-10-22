@@ -108,6 +108,14 @@ Under the player, `EditorTimeline.tsx` gives editor-style control over the autom
 - **Scrubbing**: click or drag anywhere; playback pauses while you drag and resumes afterwards. Everything reads the `<video>` element, so the live text layer stays in sync.
 - **Trimming**: drag the in and out handles (they snap to word edges; hold Alt to place freely), then apply. The handle positions are converted back to source time through the clip's cut list, and the clip is re-assembled from its master in seconds.
 
+## Virtual cut (edit without rendering)
+
+Trims, cutting a section out, moving a section to the start as a teaser, and switching between a straight opening and a cold open don't need new pixels: the draft already contains the footage. `hooksVirtual.ts` keeps the cut as an ordered list of pieces and plays the draft in that order, jumping between pieces on the next frame. The hook, progress bar and end card follow the virtual timeline, and captions follow the footage.
+
+- The cut is saved as **source-time** ranges (`clip.meta.cut`), so it survives later re-renders such as an edit-style change.
+- Nothing renders while you edit. On approve (or export), `burn_clip` assembles the final video from those ranges with `edl.from_ranges`, reusing the clip's cached master and edit plan, and burns the text in at the same time: about 9 s for a 30 s clip.
+- Only edits that need footage the draft doesn't have (extending past its ends, a different layout or edit style) re-cut the draft.
+
 ## Audio
 
 - Cuts are joined with 30 ms crossfades, so jump cuts have no clicks.

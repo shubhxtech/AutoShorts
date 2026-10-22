@@ -607,7 +607,8 @@ def _clip_out(c: Clip, s: Session) -> dict:
     wv = config.paths().work / str(c.video_id) / "voice.txt"
     d["voice"] = wv.read_text().strip() if d["faceless"] and wv.exists() else ""
     d["moment"] = {"title": m.title, "scores": m.scores, "final_score": m.final_score, "reason": m.reason,
-                   "hooks": m.hooks, "text": m.text, "start_s": m.start_s, "end_s": m.end_s} if m else None
+                   "hooks": m.hooks, "text": m.text, "start_s": m.start_s, "end_s": m.end_s,
+                   "punchline_s": m.punchline_s} if m else None
     d["posts"] = [dump(p) for p in s.exec(select(Post).where(Post.clip_id == c.id)).all()]
     stats = d.get("render_stats") or {}
     d["render_stats"] = {k: v for k, v in stats.items() if k not in ("words",)}
@@ -645,6 +646,7 @@ class ClipEdit(BaseModel):
     edit_preset: str | None = None
     layout: str | None = None
     caption_edits: dict[str, str] | None = None
+    cut: list[list[float]] | None = None   # virtual cut: ordered [src_start, src_end] ranges ([] = none)
     trim_start: float | None = None    # seconds added to the start (negative extends)
     trim_end: float | None = None      # seconds added to the end (negative shortens)
     youtube_title: str | None = None
@@ -695,6 +697,11 @@ def edit_clip(cid: int, body: ClipEdit, s: Session = Depends(get_session)):
         if body.trim_end is not None:
             trim["end"] = body.trim_end
         meta["trim"], needs_render = trim, True
+    if body.cut is not None:
+        # Instant: the player plays the draft in this order; the final cut is assembled on approve.
+        meta["cut"] = [[round(float(a), 3), round(float(b), 3)] for a, b in body.cut if float(b) - float(a) > 0.04]
+        if not meta["cut"]:
+            meta.pop("cut")
     if body.youtube_title is not None:
         meta["youtube_title"] = body.youtube_title
     if body.instagram_caption is not None:

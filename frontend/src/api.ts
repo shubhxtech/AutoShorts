@@ -64,7 +64,7 @@ export type Clip = {
   url: string; thumb_url: string; rights: Rights; source_name: string; video_title: string;
   meta: Record<string, any>; caption_edits: Record<string, string>; target_accounts: number[];
   render_stats: Record<string, any>; words: [number, string, number, number, number][];
-  moment: { title: string; scores: Record<string, number>; final_score: number; reason: string; hooks: Hook[]; text: string; start_s: number; end_s: number } | null;
+  moment: { title: string; scores: Record<string, number>; final_score: number; reason: string; hooks: Hook[]; text: string; start_s: number; end_s: number; punchline_s?: [number, number] | null } | null;
   posts: Post[]; created_at: string; faceless?: boolean; voice?: string; base_url?: string; base_poster?: string; needs_burn?: boolean;
   overlay_spec?: import("./components/OverlayPreview").OverlaySpec | null; overlay?: import("./components/OverlayPreview").OverlayEdits; siblings?: { id: number; variant: string; status: string; thumb_url: string }[];
 };

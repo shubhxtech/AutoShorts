@@ -681,10 +681,21 @@ def finish_base(vid: int, script: Script, images: list, timings: list, clean: Pa
              progress=lambda f, m: ctx.progress(0.72 + 0.12 * f, m))
     pr = probe(base)
     wav16 = work / "audio16k.wav"
-    ffmpeg("-i", str(clean), "-ac", "1", "-ar", "16000", str(wav16))
     lang = "hi" if script.language.lower().startswith("hi") else "en"
-    data = transcribe(wav16, work / "transcript.json", language=lang)
-    build_timeline(wav16, data, work / "timeline.json")
+    # Same narration as last time (only pictures or on-screen text changed): reuse its word timings.
+    import hashlib
+
+    digest = hashlib.md5(clean.read_bytes()).hexdigest()
+    stamp = work / "transcript.audio.md5"
+    same_narration = stamp.exists() and stamp.read_text() == digest
+    if same_narration and (work / "transcript.json").exists() and (work / "timeline.json").exists():
+        data = json.loads((work / "transcript.json").read_text())
+        log.info("narration unchanged: reusing its transcript")
+    else:
+        ffmpeg("-i", str(clean), "-ac", "1", "-ar", "16000", str(wav16))
+        data = transcribe(wav16, work / "transcript.json", language=lang)
+        build_timeline(wav16, data, work / "timeline.json")
+        stamp.write_text(digest)
     (work / "voice.txt").write_text(voice)
     _set(vid, file_path=str(base), duration_s=pr.duration, width=1080, height=1920, fps=30,
          transcript_path=str(work / "transcript.json"), timeline_path=str(work / "timeline.json"),
@@ -707,8 +718,10 @@ def finish_base(vid: int, script: Script, images: list, timings: list, clean: Pa
             m.title = script.title
             m.text = " ".join(x.narration for x in script.scenes)
             m.hooks = [{"text": script.hook, "style": "curiosity_gap"}]
-            # The base video changed: cached edit plans and masters are stale.
-            old = {k: v for k, v in (m.meta or {}).items() if not k.startswith("edit_plan") and k != "masters"}
+            # The base video changed, so cached masters are stale. Edit plans depend only on the words:
+            # keep them when the narration is the same (saves an LLM call per rebuild).
+            old = {k: v for k, v in (m.meta or {}).items()
+                   if k != "masters" and not (k.startswith("edit_plan") and not same_narration)}
             m.meta = {**old, **meta}
         s.add(m)
         s.commit()

@@ -76,11 +76,14 @@ export function useVideoTime(video: RefObject<HTMLVideoElement>) {
   return t;
 }
 
-export function OverlayPreview({ spec, words, edits, video, onDragCaption }: {
+export function OverlayPreview({ spec, words, edits, video, onDragCaption, clock }: {
   spec: OverlaySpec; words: Word[]; edits: OverlayEdits; video: RefObject<HTMLVideoElement>;
   onDragCaption?: (y: number) => void;
+  /** Virtual-cut clock: the hook, progress bar and end card follow the edited timeline, captions follow the footage. */
+  clock?: RefObject<{ v: number; dur: number }>;
 }) {
   const t = useVideoTime(video);
+  const tv = clock?.current ? clock.current.v : t;
   const box = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.3);
   // Measure before the first paint (the observer alone fires a frame late, and the player now resizes itself).
@@ -101,7 +104,7 @@ export function OverlayPreview({ spec, words, edits, video, onDragCaption }: {
   const textOf = (w: Word) => ew[String(w[0])] ?? w[1];
   const chunks = useMemo(() => captionChunks(words, st), [words, st]);
   const emph = useMemo(() => new Set(spec.emphasis || []), [spec.emphasis]);
-  const d = spec.duration;
+  const d = clock?.current?.dur || spec.duration;
 
   // caption vertical position
   let capY = 0.68;
@@ -137,14 +140,14 @@ export function OverlayPreview({ spec, words, edits, video, onDragCaption }: {
   }
 
   const hookStyle = s.hook_style || spec.hook_style || "native";
-  const hookOn = !!s.hook && t < (spec.hook_seconds || 0);
-  const hookOut = 1 - easeOut((t - ((spec.hook_seconds || 0) - 0.2)) / 0.2);
+  const hookOn = !!s.hook && tv < (spec.hook_seconds || 0);
+  const hookOut = 1 - easeOut((tv - ((spec.hook_seconds || 0) - 0.2)) / 0.2);
   const kw = keyWord(s.hook || "", new Set((spec.key_words || []).map((x) => x.toLowerCase())));
 
   return (
     <div ref={box} className="pointer-events-none absolute left-0 top-0 origin-top-left select-none" style={{ width: 1080, height: 1920, transform: `scale(${scale})` }}>
       {s.progress_bar && d > 0 && (
-        <div className="absolute left-0 top-0 h-[10px] w-full bg-black/50"><div className="h-full" style={{ width: `${Math.min(100, (t / d) * 100)}%`, background: brand }} /></div>
+        <div className="absolute left-0 top-0 h-[10px] w-full bg-black/50"><div className="h-full" style={{ width: `${Math.min(100, (tv / d) * 100)}%`, background: brand }} /></div>
       )}
 
       {hookOn && hookStyle !== "none" && (
@@ -168,8 +171,8 @@ export function OverlayPreview({ spec, words, edits, video, onDragCaption }: {
           {s.credit && <div className="mt-3 text-white" style={{ font: `600 34px "Avenir Next", system-ui`, textShadow: "0 2px 8px rgba(0,0,0,.8)" }}>🎙 {s.credit}</div>}
         </div>
       )}
-      {(!hookOn || hookStyle === "none") && s.headline && !inPanel && t < d - (s.end_card ? 1.9 : 0) && (
-        <div className="absolute inset-x-0 top-[174px] flex flex-col items-center" style={{ opacity: hookOn || hookStyle === "none" ? 1 : easeOut((t - (spec.hook_seconds || 0)) / 0.3) }}>
+      {(!hookOn || hookStyle === "none") && s.headline && !inPanel && tv < d - (s.end_card ? 1.9 : 0) && (
+        <div className="absolute inset-x-0 top-[174px] flex flex-col items-center" style={{ opacity: hookOn || hookStyle === "none" ? 1 : easeOut((tv - (spec.hook_seconds || 0)) / 0.3) }}>
           {balancedLines(s.headline, `700 40px "Avenir Next"`, 820, 2).map((line, li) => (
             <div key={li} className="rounded-[13px] text-center" style={{ font: `700 40px "Avenir Next", system-ui`, lineHeight: 1.18, padding: "7px 18px",
               background: hookStyle === "native" ? "rgba(255,255,255,0.94)" : "rgba(0,0,0,0.67)", color: hookStyle === "native" ? "#0e0e0e" : "#fff" }}>{line}</div>
@@ -214,14 +217,14 @@ export function OverlayPreview({ spec, words, edits, video, onDragCaption }: {
         return <div key={et} className="absolute left-1/2" style={{ top: 1920 * capY - 280 - 20 * a, fontSize: 150, transform: `translateX(-50%) scale(${0.4 + 0.75 * backOut(a / 0.25)})`, opacity: 1 - easeOut((a - 0.7) / 0.2) }}>{e}</div>;
       })}
 
-      {s.cta_keyword && t >= d - 2.4 ? (
+      {s.cta_keyword && tv >= d - 2.4 ? (
         <div className="absolute inset-x-0 flex justify-center" style={{ top: 1920 * 0.62, transform: "translateY(-50%)" }}>
-          <div className="rounded-[10px] bg-[#121212]/95 px-10 py-7 text-center text-white shadow-2xl" style={{ transform: `scale(${t - (d - 2.4) > 0.35 ? 1 + 0.025 * Math.sin(t * 9) : 0.5 + 0.5 * backOut((t - (d - 2.4)) / 0.35)})`, font: `800 78px "Avenir Next", system-ui` }}>
+          <div className="rounded-[10px] bg-[#121212]/95 px-10 py-7 text-center text-white shadow-2xl" style={{ transform: `scale(${tv - (d - 2.4) > 0.35 ? 1 + 0.025 * Math.sin(tv * 9) : 0.5 + 0.5 * backOut((tv - (d - 2.4)) / 0.35)})`, font: `800 78px "Avenir Next", system-ui` }}>
             💬 COMMENT<div className="mt-3 rounded-[18px] px-8 py-2" style={{ background: "#e8342b", fontSize: 84 }}>{s.cta_keyword.toUpperCase()}</div>
           </div>
         </div>
-      ) : s.end_card && t >= d - 1.9 ? (
-        <div className="absolute inset-x-0 top-[576px] flex flex-col items-center gap-[18px]" style={{ opacity: Math.min(1, backOut((t - (d - 1.9)) / 0.3)) }}>
+      ) : s.end_card && tv >= d - 1.9 ? (
+        <div className="absolute inset-x-0 top-[576px] flex flex-col items-center gap-[18px]" style={{ opacity: Math.min(1, backOut((tv - (d - 1.9)) / 0.3)) }}>
           {s.cta && <div className="rounded-[24px] px-9 py-4" style={{ background: brand, color: "#000", font: `800 58px "Avenir Next", system-ui` }}>{s.cta}</div>}
           {s.credit && <div className="rounded-[18px] bg-black/75 px-7 py-3 text-center text-white" style={{ font: `600 38px "Avenir Next", system-ui` }}>🎙 Full episode: {s.credit}{s.credit_link && <div className="text-[30px] text-[#c8c8c8]">{s.credit_link}</div>}</div>}
         </div>

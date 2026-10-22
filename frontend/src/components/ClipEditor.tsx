@@ -5,6 +5,7 @@ import { api, fmt, type Account, type Clip } from "../api";
 import { Platform, RightsBadge, Score, StatusPill, Toggle, useToast } from "./ui";
 import { VoicePicker } from "./VoicePicker";
 import type { OverlayEdits } from "./OverlayPreview";
+import type { VirtualPlayer } from "../hooksVirtual";
 
 const CAPTION_STYLES = ["clean", "bold", "karaoke", "pop", "boxed", "minimal"];
 const PRESETS = [
@@ -19,11 +20,12 @@ const OPENINGS = [
 ];
 
 /** Everything you can change about a clip before approving it. */
-export function ClipEditor({ clip, accounts, onChanged, onApprove, onReject, live, video }: {
+export function ClipEditor({ clip, accounts, onChanged, onApprove, onReject, live, video, vp }: {
   clip: Clip; accounts: Account[]; onChanged: (c: Clip) => void;
   onApprove: (ids: number[], accounts: number[], at?: string) => void; onReject: (ids: number[]) => void;
   live?: { edits: OverlayEdits; update: (p: OverlayEdits) => void; saving: boolean; live: boolean };
   video?: React.RefObject<HTMLVideoElement>;
+  vp?: VirtualPlayer;
 }) {
   const toast = useToast();
   const [hook, setHook] = useState(clip.hook_text);
@@ -231,7 +233,12 @@ export function ClipEditor({ clip, accounts, onChanged, onApprove, onReject, liv
             {CAPTION_STYLES.map((c) => <option key={c} value={c}>{fmt.label(c)}</option>)}
           </select></label>}
         <label><span className="label">Opening</span>
-          <select className="input" value={clip.opening} disabled={rendering} onChange={(e) => patch({ opening: e.target.value })}>
+          <select className="input" value={clip.opening} disabled={rendering} onChange={(e) => {
+            const op = e.target.value;
+            // Straight / cold open just reorder footage the draft already has: switch instantly, render on approve.
+            if (live?.live && vp?.setOpening(op)) { onChanged({ ...clip, opening: op }); patch({ opening: op, rerender: false }); }
+            else patch({ opening: op });
+          }}>
             {OPENINGS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select></label>
         <label><span className="label">Layout</span>
@@ -254,18 +261,10 @@ export function ClipEditor({ clip, accounts, onChanged, onApprove, onReject, liv
         </div>
       )}
 
-      <div>
-        <span className="label flex items-center gap-1"><Scissors size={12} /> Trim</span>
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-dim">Start</span>
-          <button className="btn-outline !px-2 !py-1" disabled={rendering} onClick={() => patch({ trim_start: (clip.meta?.trim?.start || 0) - 1 })}>−1s</button>
-          <button className="btn-outline !px-2 !py-1" disabled={rendering} onClick={() => patch({ trim_start: (clip.meta?.trim?.start || 0) + 1 })}>+1s</button>
-          <span className="ml-3 text-dim">End</span>
-          <button className="btn-outline !px-2 !py-1" disabled={rendering} onClick={() => patch({ trim_end: (clip.meta?.trim?.end || 0) - 1 })}>−1s</button>
-          <button className="btn-outline !px-2 !py-1" disabled={rendering} onClick={() => patch({ trim_end: (clip.meta?.trim?.end || 0) + 1 })}>+1s</button>
-          {clip.meta?.trim && <span className="text-xs text-mute">({clip.meta.trim.start || 0}s / {clip.meta.trim.end || 0}s)</span>}
-        </div>
-      </div>
+      <p className="flex items-start gap-1.5 rounded-xl border border-line px-3 py-2 text-xs text-dim">
+        <Scissors size={13} className="mt-0.5 shrink-0" />
+        <span>Trim, cut out a section or move one to the start on the <b className="text-ink">timeline</b> below: it plays instantly and is rendered once when you approve. Shift-drag (or double-click a caption) to select.</span>
+      </p>
       {clip.faceless && <Link to={`/faceless/${clip.video_id}`} className="btn-outline w-full">Open the storyboard (edit scenes, redraw pictures)</Link>}
       </>}
 

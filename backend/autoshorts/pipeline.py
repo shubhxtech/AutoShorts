@@ -381,7 +381,22 @@ def overlay_hash(clip: Clip) -> str:
     import hashlib
 
     ov = (clip.meta or {}).get("overlay") or {}
-    return hashlib.md5(json.dumps([ov, clip.render_stats.get("overlay")], sort_keys=True, default=str).encode()).hexdigest()
+    cut = (clip.meta or {}).get("cut") or []
+    return hashlib.md5(json.dumps([ov, clip.render_stats.get("overlay"), cut], sort_keys=True, default=str).encode()).hexdigest()
+
+
+def cut_ranges(clip: Clip) -> list[tuple[float, float, float]] | None:
+    """The virtual cut as (src_start, src_end, zoom) ranges, zoom taken from the draft's segment there."""
+    cut = (clip.meta or {}).get("cut") or []
+    if not cut:
+        return None
+    segs = (clip.render_stats or {}).get("edl") or []
+    out = []
+    for a, b in cut:
+        a = max(0.0, float(a))
+        zoom = next((float(z) for s0, s1, _k, z in segs if s0 - 0.05 <= a < s1), 1.0)
+        out.append((a, float(b), zoom))
+    return out
 
 
 def needs_burn(clip: Clip) -> bool:
@@ -404,8 +419,25 @@ def burn_clip(ctx: JobContext, p: dict) -> None:
     base = Path(meta["base_path"])
     out = _clip_path(clip)
     tmp = out.with_name(out.stem + "_tmp.mp4")
-    burn(base, clip.render_stats["overlay"], clip.render_stats.get("words", []), meta.get("overlay"), tmp,
-         progress=lambda f, m: ctx.progress(f, m))
+    ranges = cut_ranges(clip)
+    if ranges:
+        # Sections were moved, trimmed or cut in the editor: assemble the final cut once, now, from the
+        # clip's cached master (no new analysis, no LLM), with the text burned in.
+        from .render.compositor import RenderSpec, render
+
+        with session() as s:
+            moment = s.get(Moment, clip.moment_id)
+            video = s.get(Video, clip.video_id)
+            src = s.get(Source, clip.source_id)
+        spec = RenderSpec(hook_text=clip.hook_text, hook_style=clip.hook_style, caption_style=clip.caption_style,
+                          preset=clip.edit_preset or "clean", layout=meta.get("layout_override", "auto"))
+        render(video, src, moment, spec, tmp, burn=True, overrides=meta.get("overlay"), quality="final",
+               ranges=ranges, progress=lambda f, m="": ctx.progress(f, m))
+        tmp.with_suffix(".jpg").unlink(missing_ok=True)
+        tmp.with_suffix(".clean.jpg").unlink(missing_ok=True)
+    else:
+        burn(base, clip.render_stats["overlay"], clip.render_stats.get("words", []), meta.get("overlay"), tmp,
+             progress=lambda f, m: ctx.progress(f, m))
     tmp.replace(out)
     with session() as s:
         fresh = s.get(Clip, clip.id)
