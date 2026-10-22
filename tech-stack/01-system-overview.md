@@ -85,6 +85,16 @@ def render_moment(ctx: JobContext, p: dict) -> None: ...
 
 **Why a SQLite queue instead of Redis/Celery:** the app is single-machine and installed by non-developers. One file holds all state, there is nothing extra to install or keep running, and jobs survive restarts.
 
+## Security
+
+The engine only ever runs on your own machine, but other software on it, or a web page you visit, could still try to talk to it. `api/security.py` puts three checks in front of every request:
+
+1. **Host check.** Requests must be addressed to `localhost`, `127.0.0.1` or `::1`. This blocks DNS rebinding, where a malicious site points its own domain at 127.0.0.1 to reach local services.
+2. **Access token.** A random per-install token is created in `secrets/api_token` (readable only by you). `/api/*` and `/media/*` require it, either as an HttpOnly, SameSite=Strict cookie, which the dashboard page sets when it loads, or as an `X-AutoShorts-Token` header, which the macOS app and the dev proxy send. Other sites can't use the cookie. Only `/api/ping` and the OAuth redirects (which validate their own `state`) are open.
+3. **Scoped tunnel.** Instagram's API fetches videos from a public URL. The temporary Cloudflare tunnel points at a separate tiny server whose only route is a signed, expiring clip link (HMAC-SHA256, compared in constant time), never at the dashboard.
+
+Unhandled errors return a short reference ID to the client; the details go to the log.
+
 ## Dashboard
 
 The dashboard is a single-page React app that the engine serves. Pages: Today, Videos, Faceless studio (and storyboard), Review, Schedule, Pages (accounts), Analytics, Comments, Optimizer, Viral finder, Rights, Activity and Settings. It polls lightweight endpoints (every few seconds) rather than using websockets, which keeps the server simple and is enough for this workload.

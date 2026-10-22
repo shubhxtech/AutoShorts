@@ -13,6 +13,7 @@ No subscriptions. No per-minute credits. No uploads to anyone's cloud.
   <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white" />
   <img alt="Linux" src="https://img.shields.io/badge/Linux-supported-FCC624?logo=linux&logoColor=black" />
   <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white" />
+  <a href="https://github.com/shubhxtech/AutoShorts/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/shubhxtech/AutoShorts/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-22C55E" /></a>
   <img alt="Local AI" src="https://img.shields.io/badge/AI-100%25%20local-FF2E63" />
   <a href="https://github.com/shubhxtech/AutoShorts/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/shubhxtech/AutoShorts?style=social" /></a>
@@ -143,6 +144,20 @@ Everything runs on local models: Whisper for speech, Qwen for writing and judgem
 - **Instagram**: use a professional account and paste a long-lived Meta token under **Pages → Connect Instagram**.
 
 Tokens stay on your machine. See [Publishing](tech-stack/06-publishing-and-learning.md) for details and API limits.
+
+## Privacy and network access
+
+All AI runs on your machine: transcripts, scripts, voices and images are never sent to an AI service. AutoShorts does go online for a few specific things:
+
+| When | What it contacts |
+|---|---|
+| First use of each model | Hugging Face, to download the model once |
+| You paste a link | The video's site, via yt-dlp, to download it |
+| Faceless video with fact-checking on | Wikipedia's public API, for source facts |
+| Publishing and analytics | YouTube and Instagram's official APIs, for accounts you connect |
+| Instagram accounts using Instagram Login | A temporary Cloudflare tunnel, which serves only that one signed clip link for a few minutes |
+
+The dashboard listens on `127.0.0.1` only. Every API request needs a per-install access token, kept in your data folder, and requests addressed to any other host name are rejected.
 
 ## Roadmap
 

@@ -66,6 +66,12 @@ The main trade-offs, and the problems that shaped the current design.
 **Decision:** cache every voice line and image by the exact input that produced it.
 **Result:** editing one line re-voices one scene, a redraw draws one image, and a crashed or restarted build resumes from where it stopped.
 
+## Secure by default, even on localhost
+
+**Problem:** "it only listens on 127.0.0.1" isn't enough. A web page can reach local services through DNS rebinding, and the Instagram tunnel briefly made the whole app public.
+**Decision:** a Host-header check, a per-install access token (cookie for the dashboard, header for native clients), and a tunnel that only reaches a media-only server.
+**Result:** nothing but your own dashboard and the macOS app can call the API, and the public tunnel can serve exactly one signed file.
+
 ## Rights gate
 
 **Decision:** every video must trace to a rights record, credits are kept, and only official platform APIs are used.
