@@ -4,11 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "clipforge"
-version = "0.2.0"
+version = "0.3.0"
 description = "Automated short-video studio: licensed long videos in, ready-to-post Shorts and Reels out."
 requires-python = ">=3.11"
 dependencies = [
   "scipy>=1.13",
+  "psutil>=5.9",
+  "skia-python>=87",
   "fastapi>=0.115",
   "uvicorn[standard]>=0.30",
   "sqlmodel>=0.0.22",
@@ -32,17 +34,27 @@ dependencies = [
   "pyobjc-framework-Vision>=10; sys_platform == 'darwin'",
   "pyobjc-framework-Quartz>=10; sys_platform == 'darwin'",
   "pyobjc-framework-CoreText>=10; sys_platform == 'darwin'",
-  "torch>=2.2",                 # forced alignment (wav2vec2)
+  "torch>=2.2",                 # forced alignment (wav2vec2); voices and images on Windows/Linux
   "transformers>=4.40",
+  # Windows / Linux: Whisper through CTranslate2 (CUDA when present). The LLM runs in Ollama or LM Studio.
+  "faster-whisper>=1.1; sys_platform != 'darwin'",
 ]
 
 [project.optional-dependencies]
 # Speaker diarization (needs a Hugging Face token and pulls in PyTorch).
 diarize = ["pyannote.audio>=3.3"]
-# Non-Apple transcription fallback.
-cpu = ["faster-whisper>=1.0"]
-# Faceless studio: local voice (Kokoro) and image generation (Z-Image-Turbo).
-faceless = ["mlx-audio>=0.6", "mflux>=0.23", "misaki[en]>=0.9", "spacy>=3.8"]
+# Faceless studio: local voices and image generation (Z-Image-Turbo).
+# Apple Silicon uses MLX builds; Windows and Linux use the PyTorch packages (CUDA recommended).
+faceless = [
+  "mlx-audio>=0.6; sys_platform == 'darwin' and platform_machine == 'arm64'",
+  "mflux>=0.23; sys_platform == 'darwin' and platform_machine == 'arm64'",
+  "kokoro>=0.9; sys_platform != 'darwin'",
+  "qwen-tts>=0.1; sys_platform != 'darwin'",
+  "diffusers>=0.36; sys_platform != 'darwin'",
+  "accelerate>=1.0; sys_platform != 'darwin'",
+  "misaki[en]>=0.9",
+  "spacy>=3.8",
+]
 # Google Drive folders shared by link.
 drive = ["gdown>=5.2"]
 dev = ["pytest>=8", "ruff>=0.5"]

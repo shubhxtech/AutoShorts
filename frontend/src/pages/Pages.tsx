@@ -99,7 +99,7 @@ export default function Pages() {
           <ol className="list-decimal space-y-1.5 pl-5 text-dim">
             <li>Switch the Instagram account to Professional (Creator or Business).</li>
             <li>In developers.facebook.com create an app with the Instagram product and generate a long-lived token.</li>
-            <li>Facebook Login tokens upload reels straight from your Mac. Instagram Login tokens need <code>cloudflared</code> installed (a temporary tunnel opens while Instagram fetches each video).</li>
+            <li>Facebook Login tokens upload reels straight from your computer. Instagram Login tokens need <code>cloudflared</code> installed (a temporary tunnel opens while Instagram fetches each video).</li>
           </ol>
           <Field label="Access token"><input className="input" value={token} onChange={(e) => setToken(e.target.value)} placeholder="IGAA… or EAA…" /></Field>
           <Field label="Instagram user ID (optional)"><input className="input" value={igId} onChange={(e) => setIgId(e.target.value)} /></Field>

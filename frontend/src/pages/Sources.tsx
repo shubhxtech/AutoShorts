@@ -6,7 +6,7 @@ import { Empty, Field, Modal, Page, RightsBadge, Toggle, useToast } from "../com
 
 const KINDS: Record<string, string> = {
   youtube_channel: "YouTube channel", youtube_playlist: "YouTube playlist", youtube_video: "Single video",
-  rss: "Podcast RSS feed", drive: "Google Drive (shared link)", local_folder: "Folder on this Mac",
+  rss: "Podcast RSS feed", drive: "Google Drive (shared link)", local_folder: "Folder on this computer",
   direct_url: "Direct file link", campaign: "Clipping campaign",
 };
 const RIGHTS: Record<string, string> = {

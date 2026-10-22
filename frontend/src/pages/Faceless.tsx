@@ -90,7 +90,7 @@ export default function Faceless() {
       const body = { ...f, format, topic: mode === "topic" ? f.topic : "", script_text: mode === "script" ? f.script_text : "",
         reference_url: mode === "remix" ? f.reference_url : "", notes: mode === "topic" ? f.notes : "" };
       const r = await api.post<{ videos: number[] }>("/faceless", body);
-      toast("ok", f.review_script ? "Writing the script. You'll review the storyboard before anything is drawn." : "Queued. Everything is made on this Mac.");
+      toast("ok", f.review_script ? "Writing the script. You'll review the storyboard before anything is drawn." : "Queued. Everything is made on this computer.");
       reload();
       if (r.videos.length === 1) nav(`/faceless/${r.videos[0]}`);
     } catch (e) { toast("err", (e as Error).message); } finally { setBusy(false); }
@@ -99,7 +99,7 @@ export default function Faceless() {
   const words = parsed ? parsed.scenes.reduce((n, s) => n + s.narration.split(/\s+/).length, 0) : 0;
 
   return (
-    <Page title="Faceless studio" subtitle="Original videos with no camera: pick a format, give it a topic or your script, review the storyboard, done. Everything runs on this Mac.">
+    <Page title="Faceless studio" subtitle="Original videos with no camera: pick a format, give it a topic or your script, review the storyboard, done. Everything runs on this computer.">
       {/* 1. Format */}
       <section className="mb-6">
         <h2 className="label mb-2">1 · Format</h2>
