@@ -1,66 +1,101 @@
+<div align="center">
+
+<img src="docs/assets/logo.png" width="112" alt="AutoShorts logo" />
+
 # AutoShorts
 
-An open-source studio that turns long videos into ready-to-post Shorts and Reels, and makes original faceless videos, entirely on your own machine.
+**Turn long videos into viral Shorts and Reels, and make faceless videos, with AI that runs entirely on your own computer.**
 
-Paste a link. AutoShorts finds the moments worth clipping, edits them in a modern short-form style, checks them, and schedules them to your YouTube and Instagram accounts. Every model runs locally: no paid APIs, no cloud processing, no per-minute fees.
+No subscriptions. No per-minute credits. No uploads to anyone's cloud.
 
-> **Status:** early and actively developed. Runs on macOS (Apple Silicon), Windows and Linux. The macOS path is the most tested.
+<p>
+  <img alt="macOS" src="https://img.shields.io/badge/macOS-Apple%20Silicon-000000?logo=apple&logoColor=white" />
+  <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white" />
+  <img alt="Linux" src="https://img.shields.io/badge/Linux-supported-FCC624?logo=linux&logoColor=black" />
+  <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white" />
+  <img alt="Local AI" src="https://img.shields.io/badge/AI-100%25%20local-FF2E63" />
+  <a href="https://github.com/shubhxtech/AutoShorts/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/shubhxtech/AutoShorts?style=social" /></a>
+</p>
 
----
+<img src="docs/assets/demo.gif" width="300" alt="A faceless countdown video made by AutoShorts" />
 
-## Features
+<sub>Made start to finish by AutoShorts on a laptop: script, voice, pictures, edit, captions and music.</sub>
 
-**Clips from long videos**
-- Word-level transcription with Whisper, plus forced alignment so cuts never land inside a word
-- A local LLM reads the whole episode like an editor and picks complete arcs (a hook question and its full answer), not random fragments
-- Each candidate is scored on hook, standalone sense, emotion, surprise, value and payoff, then refined with audio signals
-
-**Editing**
-- 9:16 reframing that follows the active speaker, with split-screen, group, screencast and fit layouts
-- Animated captions in several styles, with stressed words highlighted; English and Hindi (Devanagari)
-- Jump cuts that remove dead air, fillers and stutters, with crossfaded audio and loudness normalised to -14 LUFS
-- Hook title on the first frame, punch-ins on emphasis, motion-graphic cards, optional AI B-roll and a progress bar
-- Live text editing: captions, hook, titles and position update instantly in the preview and are burned in only on approval
-- Master and assembly rendering: the slow analysis runs once per clip, so changing the edit style or opening takes seconds
-
-**Faceless studio**
-- Seven formats: story, top-N countdown, rapid facts, quiz, would-you-rather, text story and motivational quote
-- Script from a topic (with Wikipedia grounding and fact-checking), from your own script file, or remixed from a reference video's idea
-- Locally generated voices and images with a consistent narrator and character design
-- Storyboard editor: review the script before anything is drawn, edit lines, redraw single shots, and rebuild only what changed
-- Royalty-free background music and sound design generated in code
-
-**Publishing and growth**
-- Multiple YouTube channels and Instagram professional accounts through their official APIs
-- Per-account best-time scheduling, A/B variants, and a bandit that learns which hooks, styles and lengths perform
-- Analytics, comment triage, and comment-to-DM funnels for affiliate links
-- A rights registry: every source must trace to content you own or have permission to use
+</div>
 
 ---
 
-## How it works
+## What it does
 
-```
-link or file
-  -> download -> transcribe (Whisper) -> align words -> find moments (local LLM)
-  -> build master per moment (framing, grade, clean audio)
-  -> assemble variants (cuts, zooms, cards, music) -> quality checks
-  -> review in the dashboard (live text edits) -> burn text on approve -> schedule -> publish
-  -> collect metrics -> update the optimizer
-```
+Paste a link to a podcast or long video you have the rights to. AutoShorts finds the moments worth clipping, edits each one into a 9:16 short with the style top creators use, checks the result, and schedules it to your YouTube and Instagram accounts. Or give it a topic and it makes an original faceless video from scratch.
 
-The engine is a Python service (FastAPI, SQLite, a local job queue) with a React dashboard. Heavy work runs in a background worker, one large model in memory at a time, so a 16 GB machine is enough. See [tech-stack/](tech-stack/README.md) for the full architecture.
+<table>
+<tr>
+<td width="50%">
 
----
+**🎬 Clips from long videos**
 
-## Requirements
+- Finds complete moments (a hook question *and* its full answer), not random 30-second slices
+- Follows whoever is speaking, with split-screen for two-person shots
+- Animated captions, hook title on frame one, punch-ins on stressed words, jump cuts that remove dead air
+- English and Hindi (Devanagari), including Hinglish
 
-| | macOS | Windows / Linux |
+</td>
+<td width="50%">
+
+**🤖 Faceless studio**
+
+- 7 formats: story, top-N countdown, rapid facts, quiz, would-you-rather, text story and quote
+- Fact-checked scripts grounded in Wikipedia, or your own script
+- Natural narrator voices and consistent characters, generated locally
+- Storyboard editor: fix a line or redraw one picture without redoing the video
+
+</td>
+</tr>
+<tr>
+<td>
+
+**⚡ Edit without waiting**
+
+- Captions, hook and titles update instantly in the preview
+- Changing the edit style takes seconds, not a full re-render
+- Text is burned in only when you approve
+
+</td>
+<td>
+
+**📈 Post and learn**
+
+- Multiple YouTube channels and Instagram accounts through the official APIs
+- Best-time scheduling per account, A/B variants, and a model that learns what performs
+- Comment replies and comment-to-DM funnels for affiliate links
+
+</td>
+</tr>
+</table>
+
+## Why AutoShorts
+
+| | Cloud clipping tools | AutoShorts |
 |---|---|---|
-| Hardware | Apple Silicon (M1 or newer) | Any 64-bit PC; an NVIDIA GPU (8 GB+) for fast faceless images |
-| RAM | 16 GB recommended (8 GB with the smaller LLM) | 16 GB recommended |
-| Software | Python 3.11+, Node 18+, ffmpeg | Python 3.11+, Node 18+, ffmpeg, [Ollama](https://ollama.com) for the LLM |
-| Disk | ~20 GB for models (downloaded on first use) | same |
+| Cost | Monthly plans with minute or credit limits | Free and open source |
+| Privacy | Your videos are uploaded to their servers | Nothing leaves your machine |
+| Faceless videos | Usually a separate paid product | Built in, 7 formats |
+| Hindi captions | Often weak or missing | Native Devanagari and Hinglish |
+| Control | Their styles, their limits | Every step is editable, and the code is yours |
+
+## Screenshots
+
+<table>
+<tr>
+<td width="50%"><img src="docs/assets/screenshot-review.jpg" alt="Review queue with live caption editing" /><p align="center"><sub>Review: approve, reject or tweak; text edits are instant</sub></p></td>
+<td width="50%"><img src="docs/assets/screenshot-faceless.jpg" alt="Faceless studio format picker" /><p align="center"><sub>Faceless studio: pick a format, give a topic</sub></p></td>
+</tr>
+<tr>
+<td><img src="docs/assets/screenshot-storyboard.jpg" alt="Storyboard editor" /><p align="center"><sub>Storyboard: edit lines, redraw single shots</sub></p></td>
+<td><img src="docs/assets/screenshot-today.jpg" alt="Dashboard overview" /><p align="center"><sub>Today: everything that happened, at a glance</sub></p></td>
+</tr>
+</table>
 
 ## Quick start
 
@@ -69,71 +104,65 @@ The engine is a Python service (FastAPI, SQLite, a local job queue) with a React
 ```bash
 git clone https://github.com/shubhxtech/AutoShorts.git
 cd AutoShorts
-make setup      # Python environment and dashboard build
-make up         # starts the dashboard, worker and scheduler
+make setup && make up
 ```
 
 On Linux, also install [Ollama](https://ollama.com) and run `ollama pull qwen3:8b`.
 
-**Windows** (PowerShell, from the repository folder)
+**Windows** (PowerShell, in the repository folder)
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1
 scripts\start_windows.bat
 ```
 
-The setup script installs anything missing (Python, Node, ffmpeg, Ollama) and uses your NVIDIA GPU if you have one.
+Then open **http://localhost:3000**. Models download automatically the first time they're needed. No footage handy? Run `make demo`.
 
-Open http://localhost:3000, paste a video link you have the rights to, and the first clips appear in **Review**. To try it without any footage, run `make demo`. To build the macOS app, run `make mac` (outputs to `dist/`).
+### Requirements
+
+| | macOS | Windows / Linux |
+|---|---|---|
+| Hardware | Apple Silicon (M1 or newer) | Any 64-bit PC; an NVIDIA GPU (8 GB+) makes faceless images fast |
+| RAM | 16 GB recommended (8 GB with the smaller model) | 16 GB recommended |
+| Disk | About 20 GB for models | Same |
+
+## How it works
+
+```
+link -> download -> transcribe (Whisper) -> align every word (wav2vec2) -> find moments (local LLM)
+     -> render a master once -> assemble variants in seconds -> quality checks
+     -> review with live text -> burn text on approve -> schedule -> publish -> learn from views
+```
+
+Everything runs on local models: Whisper for speech, Qwen for writing and judgement, Qwen3-TTS and Kokoro for voices, and Z-Image-Turbo for pictures. On Windows and Linux the language model runs through Ollama or LM Studio. The full architecture, with diagrams, is in [tech-stack/](tech-stack/README.md).
 
 ## Connecting accounts
 
-- **YouTube:** create a Google Cloud OAuth client (web application), add the redirect URI shown in Settings, upload the `client_secret.json`, then use **Pages -> Connect YouTube**. New API projects upload as private until Google's audit is approved.
-- **Instagram:** use a professional account and a long-lived token from a Meta app, pasted under **Pages -> Connect Instagram**. Comment-to-DM needs the `instagram_business_manage_messages` permission.
+- **YouTube**: create a Google Cloud OAuth client, upload its `client_secret.json` in Settings, then **Pages → Connect YouTube**.
+- **Instagram**: use a professional account and paste a long-lived Meta token under **Pages → Connect Instagram**.
 
-Tokens are stored locally in the data folder and never leave your machine except to call those APIs.
-
-## Models
-
-| Task | Default model |
-|---|---|
-| Transcription | `whisper-large-v3-turbo` (MLX) |
-| Language model | `Qwen3.5-9B` 4-bit on Apple Silicon; any local OpenAI-compatible server elsewhere (Ollama, LM Studio) |
-| Word alignment | `wav2vec2-base-960h` |
-| Voices | Qwen3-TTS (designed and cloned voices), Kokoro, Chatterbox |
-| Images | Z-Image-Turbo 4-bit |
-
-Models can be swapped in **Settings**, and the sidebar shows what's loaded with a button to free memory (models also unload on their own after a few idle minutes). Check each model's license before commercial use.
-
----
-
-## Project layout
-
-```
-backend/clipforge/   engine: ingest, understand, mining, render, quality, publish, analytics, faceless, api
-frontend/            React + TypeScript dashboard
-macos/               desktop app shell, installer and build script
-scripts/             Windows setup and start scripts
-tech-stack/          architecture and design documentation
-```
-
-The Python package is currently named `clipforge`. App data lives outside the repository (`~/Library/Application Support/ClipForge` on macOS, `%LOCALAPPDATA%\ClipForge` on Windows, `~/.local/share/clipforge` on Linux; override with `CLIPFORGE_HOME`).
-
-## Development
-
-```bash
-make dev        # engine on :3000, hot-reloading dashboard on :5173
-make test       # backend tests
-```
+Tokens stay on your machine. See [Publishing](tech-stack/06-publishing-and-learning.md) for details and API limits.
 
 ## Roadmap
 
-- End-to-end testing on Windows and NVIDIA hardware
-- Docker image for one-command setup
-- A desktop shell for Windows
-- More faceless formats and caption styles
-- TikTok publishing
+- [x] Clips with speaker tracking, captions and live editing
+- [x] Faceless studio with 7 formats and a storyboard editor
+- [x] Windows and Linux support
+- [ ] One-click installers for Windows and macOS
+- [ ] TikTok publishing
+- [ ] Docker image
+- [ ] More caption styles and faceless formats (vote in [Discussions](https://github.com/shubhxtech/AutoShorts/discussions))
+
+## Contributing
+
+Issues, ideas and pull requests are welcome. Windows and NVIDIA testers are especially helpful right now. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+If AutoShorts saves you a subscription, a ⭐ helps other creators find it.
 
 ## Responsible use
 
-AutoShorts is built for content you own or are licensed to use. The rights registry, credits and official platform APIs are there to keep your accounts safe. Don't use it to repost other creators' work without permission.
+AutoShorts is for content you own or have permission to use. Every source needs a rights record, credits are kept, and publishing goes through official platform APIs only.
+
+## Acknowledgements
+
+Built on great open models and tools: [Whisper](https://github.com/openai/whisper), [Qwen](https://github.com/QwenLM), [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS), [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M), [Z-Image](https://huggingface.co/Tongyi-MAI/Z-Image-Turbo), [MLX](https://github.com/ml-explore/mlx), [Ollama](https://ollama.com), [FFmpeg](https://ffmpeg.org), [OpenCV](https://opencv.org) and [Skia](https://skia.org).
