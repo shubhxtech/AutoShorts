@@ -1,0 +1,29 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [macOS (Apple Silicon), Windows, Linux]
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Hardware
+      placeholder: "e.g. M2 16 GB, or RTX 3060 12 GB + 32 GB RAM"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: The relevant lines from the Activity page or the `logs/` folder in your data directory.
+      render: text
