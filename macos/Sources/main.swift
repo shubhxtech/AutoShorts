@@ -34,8 +34,24 @@ final class Engine {
         !FileManager.default.fileExists(atPath: cli.path) || installedVersion != bundledVersion
     }
 
+    /// The engine's per-install access token (secrets/api_token in the data folder).
+    var apiToken: String {
+        let base = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
+        for dir in ["AutoShorts", "ClipForge"] {
+            let p = base.appendingPathComponent("\(dir)/secrets/api_token")
+            if let t = try? String(contentsOf: p, encoding: .utf8), !t.isEmpty { return t.trimmingCharacters(in: .whitespacesAndNewlines) }
+        }
+        return ""
+    }
+
+    func authed(_ url: URL) -> URLRequest {
+        var r = URLRequest(url: url)
+        r.setValue(apiToken, forHTTPHeaderField: "X-AutoShorts-Token")
+        return r
+    }
+
     func isUp(_ done: @escaping (Bool) -> Void) {
-        var req = URLRequest(url: BASE.appendingPathComponent("api/summary"))
+        var req = URLRequest(url: BASE.appendingPathComponent("api/ping"))
         req.timeoutInterval = 1.5
         URLSession.shared.dataTask(with: req) { _, resp, _ in
             done((resp as? HTTPURLResponse)?.statusCode == 200)
@@ -223,7 +239,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNaviga
     // Native notifications for the important events.
     func pollEvents(initial: Bool = false) {
         let url = BASE.appendingPathComponent("api/events").appending(queryItems: [URLQueryItem(name: "since_id", value: "\(lastEventId)"), URLQueryItem(name: "limit", value: "20")])
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        URLSession.shared.dataTask(with: engine.authed(url)) { data, _, _ in
             guard let data, let items = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return }
             let important: Set<String> = ["clips_ready", "viral", "post_failed", "token_expiring", "replies_waiting", "published", "weekly_report"]
             for e in items.reversed() {
@@ -295,7 +311,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNaviga
     @objc func quit() { NSApp.terminate(nil) }
 
     func post(_ path: String, body: [String: Any]) {
-        var r = URLRequest(url: BASE.appendingPathComponent(path))
+        var r = engine.authed(BASE.appendingPathComponent(path))
         r.httpMethod = "POST"
         r.setValue("application/json", forHTTPHeaderField: "Content-Type")
         r.httpBody = try? JSONSerialization.data(withJSONObject: body)

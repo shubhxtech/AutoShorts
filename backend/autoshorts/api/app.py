@@ -8,19 +8,28 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
-from .. import __version__, config
+from .. import __version__, config, logs
 from ..db import init_db, session
 from ..logs import setup_logging
 from ..models import Clip
 from .routes import router
+from .security import SecurityMiddleware, set_cookie, token
 
 setup_logging("api")
 init_db()
+token()          # create the access token now, so the macOS app and dev server can read it right away
 
 app = FastAPI(title="AutoShorts", version=__version__, docs_url="/api/docs", openapi_url="/api/openapi.json")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
                    allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(SecurityMiddleware)          # outermost: host check + access token
 app.include_router(router)
+log = logs.get("api")
+
+
+@app.get("/api/ping", include_in_schema=False)
+def ping():
+    return {"ok": True}
 
 
 @app.exception_handler(Exception)
@@ -29,7 +38,13 @@ async def _errors(request: Request, exc: Exception):
 
     if isinstance(exc, RightsError):
         return JSONResponse({"detail": f"Rights check failed: {exc}"}, status_code=400)
-    return JSONResponse({"detail": f"{type(exc).__name__}: {exc}"}, status_code=500)
+    # Details stay in the log; the client only gets a reference to find them.
+    import secrets as _secrets
+
+    ref = _secrets.token_hex(3)
+    log.exception("unhandled error %s on %s %s", ref, request.method, request.url.path, exc_info=exc)
+    return JSONResponse({"detail": f"Something went wrong (ref {ref}). The details are in the Activity log."},
+                        status_code=500)
 
 
 def _inside(path: Path, root: Path) -> bool:
@@ -91,9 +106,13 @@ def spa(rest: str):
     if rest.startswith(("api/", "media/", "public/")):
         raise HTTPException(404)
     if _dist is None:
-        return HTMLResponse("<h2>AutoShorts API is running.</h2><p>Build the dashboard with "
+        page = HTMLResponse("<h2>AutoShorts API is running.</h2><p>Build the dashboard with "
                             "<code>make web</code> (or run <code>npm run dev</code> in frontend/).</p>")
+        set_cookie(page)
+        return page
     target = _dist / rest
     if rest and _inside(target, _dist) and target.is_file():
         return FileResponse(target)
-    return FileResponse(_dist / "index.html", headers={"Cache-Control": "no-cache"})
+    page = FileResponse(_dist / "index.html", headers={"Cache-Control": "no-cache"})
+    set_cookie(page)            # the dashboard's own requests now carry the access token
+    return page

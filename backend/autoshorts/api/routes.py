@@ -290,6 +290,21 @@ def _quick_meta(url: str) -> dict:
         return {}
 
 
+MEDIA_EXTS = {".mp4", ".mov", ".mkv", ".webm", ".m4v", ".avi", ".mp3", ".m4a", ".wav", ".aac", ".flac", ".ogg"}
+
+
+def _check_local_media(path: Path) -> None:
+    """Local imports must be a video or audio file, and never something inside the app's own data folder."""
+    p = path.resolve()
+    if not p.is_file() or p.suffix.lower() not in MEDIA_EXTS:
+        raise HTTPException(400, "That path isn't a video or audio file")
+    try:
+        p.relative_to(config.paths().home.resolve())
+        raise HTTPException(400, "Files inside the AutoShorts data folder can't be imported")
+    except ValueError:
+        pass
+
+
 @router.post("/quick")
 def quick_add(body: QuickIn, s: Session = Depends(get_session)):
     """Paste a video link: register its rights, then find, edit (and optionally post) the best clips."""
@@ -302,6 +317,8 @@ def quick_add(body: QuickIn, s: Session = Depends(get_session)):
         raise HTTPException(400, "Unknown rights type")
     local = Path(url).expanduser()
     is_file = local.exists()
+    if is_file:
+        _check_local_media(local)
     existing = s.exec(select(Video).where(Video.url == (str(local) if is_file else url),
                                           col(Video.status).notin_(("deleted", "canceled", "failed")))).first()
     if existing:

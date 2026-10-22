@@ -23,8 +23,9 @@ def _default_home() -> Path:
         base, new, old = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local"), "AutoShorts", "ClipForge"
     else:
         base, new, old = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share"), "autoshorts", "clipforge"
-    # Installs from before the rename keep their data where it is.
-    if not (base / new).exists() and (base / old).exists():
+    # Installs from before the rename keep their data where it is. (The new folder may already exist
+    # because the macOS installer puts its runtime there, so look for an actual database.)
+    if not (base / new / "autoshorts.db").exists() and (base / old / "clipforge.db").exists():
         return base / old
     return base / new
 
