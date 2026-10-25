@@ -69,3 +69,18 @@ jobs:
       - name: Run tests
         working-directory: backend
         run: python -m pytest -q -rs
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t autoshorts:ci .
+      - name: Start and check the engine and dashboard answer
+        run: |
+          docker run -d --name as -p 127.0.0.1:3000:3000 autoshorts:ci
+          for i in $(seq 60); do curl -sf http://localhost:3000/api/ping && break; sleep 2; done
+          curl -sf http://localhost:3000/api/ping
+          curl -sf http://localhost:3000/ | grep -q '<div id="root">'
+          docker logs as | tail -20

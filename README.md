@@ -103,7 +103,17 @@ Paste a link to a podcast or long video you have the rights to. AutoShorts finds
 
 ## Quick start
 
-**macOS / Linux**
+**Docker (Linux and Windows): one command**
+
+```bash
+git clone https://github.com/shubhxtech/AutoShorts.git
+cd AutoShorts
+docker compose up -d
+```
+
+This starts AutoShorts and a local LLM (Ollama) side by side, and downloads the model in the background on the first run. Put video files in `imports/` to add them as `/imports/<file>`. With an NVIDIA GPU, uncomment the `deploy` block in `docker-compose.yml`.
+
+**macOS / Linux (native)**
 
 ```bash
 git clone https://github.com/shubhxtech/AutoShorts.git
@@ -121,6 +131,24 @@ scripts\start_windows.bat
 ```
 
 Then open **http://localhost:3000**. Models download automatically the first time they're needed. No footage handy? Run `make demo`.
+
+### Use it from Claude, Cursor or any MCP client
+
+AutoShorts ships an [MCP](https://modelcontextprotocol.io) server, so an AI assistant can make clips and faceless videos for you, still entirely on your machine. With AutoShorts running, add it to your client's config:
+
+```json
+{
+  "mcpServers": {
+    "autoshorts": { "command": "autoshorts", "args": ["mcp"] }
+  }
+}
+```
+
+If you installed natively, use the full path to the command, for example `/path/to/AutoShorts/backend/.venv/bin/autoshorts` (on Windows, `backend\.venv\Scripts\autoshorts.exe`). With Docker, use `"command": "docker", "args": ["compose", "exec", "-T", "autoshorts", "autoshorts", "mcp"]` from the repository folder.
+
+Then ask things like *"Make 3 Hindi faceless videos about UPI fraud"* or *"Clip my latest podcast episode and show me the best five"*. The assistant can check status, list clips, edit hooks and titles, and approve or reject. The rights check and the review step apply exactly as in the dashboard, and nothing is posted until a clip is approved.
+
+Tools: `status`, `make_clips`, `make_faceless_video`, `faceless_formats`, `list_clips`, `edit_clip`, `approve_clips`, `reject_clips`, `list_accounts`, `scheduled_posts`.
 
 ### Requirements
 
@@ -159,7 +187,7 @@ All AI runs on your machine: transcripts, scripts, voices and images are never s
 | Publishing and analytics | YouTube and Instagram's official APIs, for accounts you connect |
 | Instagram accounts using Instagram Login | A temporary Cloudflare tunnel, which serves only that one signed clip link for a few minutes |
 
-The dashboard listens on `127.0.0.1` only. Every API request needs a per-install access token, kept in your data folder, and requests addressed to any other host name are rejected.
+The dashboard listens on `127.0.0.1` only (in Docker, the port is published to `127.0.0.1` only). Every API request needs a per-install access token, kept in your data folder, and requests addressed to any other host name are rejected.
 
 ## Roadmap
 
@@ -168,7 +196,11 @@ The dashboard listens on `127.0.0.1` only. Every API request needs a per-install
 - [x] Windows and Linux support
 - [ ] One-click installers for Windows and macOS
 - [ ] TikTok publishing
-- [ ] Docker image
+- [x] Docker image (`docker compose up`)
+- [x] MCP server for Claude, Cursor and other AI assistants
+- [ ] Batch mode: a list of topics or links in, a review queue out
+- [ ] Motion-explainer faceless format (animated data cards)
+- [ ] Optional free stock B-roll (Pexels, Pixabay)
 - [ ] More caption styles and faceless formats (vote in [Discussions](https://github.com/shubhxtech/AutoShorts/discussions))
 
 ## Contributing

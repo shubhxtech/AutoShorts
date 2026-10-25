@@ -29,3 +29,6 @@ client_secret*.json
 .DS_Store
 .idea/
 .vscode/
+
+# Docker: local files to import
+imports/

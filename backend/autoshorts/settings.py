@@ -103,6 +103,9 @@ ENV_KEYS = {
     "telegram_chat_id": "TELEGRAM_CHAT_ID",
     "youtube_api_key": "YOUTUBE_API_KEY",
     "public_base_url": "AUTOSHORTS_PUBLIC_URL",
+    "llm_backend": "AUTOSHORTS_LLM_BACKEND",           # Docker: "server", pointing at the Ollama container
+    "llm_server_url": "AUTOSHORTS_LLM_URL",
+    "llm_server_model": "AUTOSHORTS_LLM_MODEL",
 }
 
 

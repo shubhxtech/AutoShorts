@@ -211,6 +211,17 @@ def status():
 
 
 @app.command()
+def mcp():
+    """Run the MCP server (stdio) so AI assistants like Claude or Cursor can use AutoShorts. Needs `autoshorts up`."""
+    try:
+        from .mcp_server import run
+    except ImportError:
+        console.print("[red]Install the MCP extra first:[/] pip install 'autoshorts[mcp]'")
+        raise typer.Exit(1) from None
+    run()
+
+
+@app.command()
 def version():
     console.print(__version__)
 

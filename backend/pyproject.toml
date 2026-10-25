@@ -57,8 +57,10 @@ faceless = [
 ]
 # Google Drive folders shared by link.
 drive = ["gdown>=5.2"]
-dev = ["pytest>=8", "ruff>=0.5"]
-all = ["autoshorts[faceless,drive]"]
+# MCP server: lets AI assistants (Claude, Cursor, ...) drive AutoShorts.
+mcp = ["mcp>=1.2"]
+dev = ["pytest>=8", "ruff>=0.5", "mcp>=1.2"]
+all = ["autoshorts[faceless,drive,mcp]"]
 
 [project.scripts]
 autoshorts = "autoshorts.cli:app"

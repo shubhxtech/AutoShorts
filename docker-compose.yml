@@ -1,0 +1,47 @@
+# One command for Linux and Windows:   docker compose up -d   then open http://localhost:3000
+#
+# The first start downloads the LLM (about 5 GB) in the background; the dashboard works meanwhile.
+# Change the model with AUTOSHORTS_LLM_MODEL below (and in ollama-pull).
+
+services:
+  autoshorts:
+    build: .
+    image: autoshorts:latest
+    ports:
+      - "127.0.0.1:3000:3000"          # this computer only; the dashboard isn't meant to be on your network
+    environment:
+      AUTOSHORTS_LLM_MODEL: qwen3:8b
+      # HF_TOKEN: hf_...               # optional: speaker diarization
+    volumes:
+      - autoshorts-data:/data          # database, videos, clips, models
+      - ./imports:/imports:ro          # put local video files here to import them as /imports/<file>
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
+    # NVIDIA GPU (needs the NVIDIA Container Toolkit): uncomment
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  ollama-pull:                         # fetches the model once, then exits
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_HOST: ollama:11434
+    entrypoint: ["sh", "-c", "sleep 5 && ollama pull qwen3:8b"]
+    depends_on:
+      - ollama
+    restart: "no"
+
+volumes:
+  autoshorts-data:
+  ollama-models:

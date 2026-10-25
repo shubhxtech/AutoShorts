@@ -43,6 +43,16 @@ scripts\start_windows.bat
 
 The script installs Python, Node, ffmpeg and Ollama with winget if they're missing, installs CUDA PyTorch when it finds an NVIDIA GPU, builds the dashboard and pulls the default model.
 
+## Docker
+
+`docker compose up -d` runs two containers: AutoShorts and Ollama. The image is built in two stages (Node builds the dashboard, then a slim Python image with ffmpeg and the skia libraries installs the engine with CPU PyTorch). Environment variables point the engine at the Ollama container (`AUTOSHORTS_LLM_BACKEND=server`, `AUTOSHORTS_LLM_URL`); `settings.get` reads them when the setting hasn't been changed in the dashboard. Everything stateful lives in the `/data` volume, including the Hugging Face model cache, so rebuilding the image doesn't re-download models. The port is published to `127.0.0.1` only. CI builds the image and checks the engine and dashboard answer on every push.
+
+A Mac can't pass Apple silicon (MLX, Metal) into a Linux container, so on macOS the native app stays the way to run it.
+
+## MCP server
+
+`autoshorts mcp` is a stdio [MCP](https://modelcontextprotocol.io) server (`autoshorts/mcp_server.py`) for AI assistants. It's deliberately a thin client of the HTTP API rather than a second way into the database: it sends the same per-install token the dashboard uses, so the rights gate, the review queue and validation apply unchanged, and the server never needs its own copy of the business rules. Errors from the engine come back to the assistant as readable tool errors ("Confirm that you own this video..."). Approving is a separate tool whose description tells the assistant to ask the user first.
+
 ## Status
 
 The macOS path is the most tested. The Windows and Linux paths are implemented and their components are tested individually on macOS by forcing the portable backends (text, faces, LLM server, encoders, Kokoro voices); full end-to-end testing on Windows and NVIDIA hardware is the next step.
